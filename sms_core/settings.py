@@ -162,10 +162,15 @@ AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
 ]
 
-if DEBUG:
-    PASSWORD_HASHERS = [
-        'django.contrib.auth.hashers.MD5PasswordHasher',
-    ]
+# Password hashers - MD5PasswordHasher included to support existing seed users while defaulting to PBKDF2
+PASSWORD_HASHERS = [
+    'django.contrib.auth.hashers.PBKDF2PasswordHasher',
+    'django.contrib.auth.hashers.PBKDF2SHA1PasswordHasher',
+    'django.contrib.auth.hashers.Argon2PasswordHasher',
+    'django.contrib.auth.hashers.BCryptSHA256PasswordHasher',
+    'django.contrib.auth.hashers.ScryptPasswordHasher',
+    'django.contrib.auth.hashers.MD5PasswordHasher',
+]
 
 
 # Internationalization
