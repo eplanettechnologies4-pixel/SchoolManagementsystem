@@ -1,0 +1,68 @@
+﻿{% extends 'base.html' %}
+
+{% block title %}My Fee Vouchers — School Management System{% endblock %}
+{% block header_title %}Student Fee Vouchers & Payment Portal{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <div class="glass-card p-6 rounded-2xl border border-slate-800">
+        <h3 class="text-xl font-bold text-white flex items-center gap-2">
+            <i data-lucide="receipt" class="w-6 h-6 text-[#9ece38]"></i> Fee Vouchers & Statements
+        </h3>
+        <p class="text-xs text-slate-400 mt-1">View fee vouchers, check status, download PDF vouchers, and view receipt history.</p>
+    </div>
+
+    <div class="glass-card p-6 rounded-2xl border border-slate-800 space-y-4">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs text-slate-300">
+                <thead class="bg-slate-950/60 text-slate-400 uppercase tracking-wider font-semibold border-b border-slate-800">
+                    <tr>
+                        <th class="px-4 py-3">Voucher #</th>
+                        <th class="px-4 py-3">Student Name</th>
+                        <th class="px-4 py-3">Billing Month</th>
+                        <th class="px-4 py-3">Due Date</th>
+                        <th class="px-4 py-3">Total Payable</th>
+                        <th class="px-4 py-3">Paid / Remaining</th>
+                        <th class="px-4 py-3">Status</th>
+                        <th class="px-4 py-3 text-right">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-800/60">
+                    {% for voucher in vouchers %}
+                    <tr class="hover:bg-slate-800/40 transition">
+                        <td class="px-4 py-3 font-mono text-[#ff8000] font-bold">{{ voucher.voucher_number }}</td>
+                        <td class="px-4 py-3 font-semibold text-white">{{ voucher.student.get_full_name }}</td>
+                        <td class="px-4 py-3 font-medium text-slate-200">{{ voucher.billing_month }}</td>
+                        <td class="px-4 py-3 font-mono text-slate-300">{{ voucher.due_date|date:"d-M-Y" }}</td>
+                        <td class="px-4 py-3 font-bold text-white">Rs. {{ voucher.total_payable:,.2f }}</td>
+                        <td class="px-4 py-3">
+                            <span class="text-[#9ece38] font-semibold block">Paid: {{ voucher.paid_amount:,.0f }}</span>
+                            {% if voucher.remaining_balance > 0 %}
+                                <span class="text-amber-400 font-semibold block">Bal: {{ voucher.remaining_balance:,.0f }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-3">
+                            <span class="px-2.5 py-0.5 text-[10px] font-bold rounded-full uppercase tracking-wider
+                                {% if voucher.status == 'PAID' %} bg-[#9ece38]/15 text-[#9ece38] border border-[#9ece38]/30
+                                {% elif voucher.status == 'PARTIALLY_PAID' %} bg-[#009688]/15 text-[#009688] border border-[#009688]/30
+                                {% elif voucher.status == 'OVERDUE' %} bg-rose-500/15 text-rose-400 border border-rose-500/30
+                                {% else %} bg-[#ff8000]/15 text-[#ff8000] border border-[#ff8000]/30 {% endif %}">
+                                {{ voucher.get_status_display }}
+                            </span>
+                        </td>
+                        <td class="px-4 py-3 text-right space-x-1.5">
+                            <a href="{% url 'voucher_detail' voucher.id %}" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-[11px] font-medium border border-slate-700">View Details</a>
+                            <a href="{% url 'voucher_pdf' voucher.id %}" target="_blank" class="px-2 py-1 bg-[#ff8000]/20 hover:bg-[#ff8000]/30 text-[#ff8000] rounded-lg text-[11px] font-semibold border border-[#ff8000]/40">Download PDF</a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="px-4 py-8 text-center text-slate-500">No fee vouchers recorded for your account.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

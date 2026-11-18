@@ -1,0 +1,146 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fee Voucher #{{ voucher.voucher_number }} — School Management System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @media print {
+            @page {
+                size: A4 landscape;
+                margin: 5mm;
+            }
+            body { background: #fff !important; color: #000 !important; padding: 0 !important; }
+            .no-print { display: none !important; }
+            .voucher-container { page-break-inside: avoid; border: none !important; box-shadow: none !important; width: 100% !important; max-width: 100% !important; padding: 0 !important; }
+            .grid { display: grid !important; grid-template-columns: repeat(3, minmax(0, 1fr)) !important; gap: 0.5rem !important; }
+        }
+        body { font-family: 'Outfit', 'Segoe UI', sans-serif; background-color: #f8fafc; }
+    </style>
+</head>
+<body class="p-4 text-slate-800">
+    <!-- Top Action Bar -->
+    <div class="no-print max-w-7xl mx-auto mb-4 flex items-center justify-between bg-slate-900 text-white p-4 rounded-xl shadow-lg">
+        <div>
+            <h1 class="text-base font-bold flex items-center gap-2">
+                <span>🖨️ Printable 3-Part Fee Voucher</span>
+            </h1>
+            <p class="text-xs text-slate-400">Contains Bank Copy, School Copy, and Student/Parent Copy.</p>
+        </div>
+        <div class="flex items-center gap-3">
+            <button onclick="window.print()" class="px-4 py-2 bg-gradient-to-r from-[#ff8000] to-[#9ece38] text-slate-950 font-bold rounded-lg text-xs shadow hover:opacity-90 transition">
+                🖨️ Print Voucher
+            </button>
+            <a href="{% url 'voucher_detail' voucher.id %}" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-semibold border border-slate-700 transition">Close</a>
+        </div>
+    </div>
+
+    <!-- Exactly 3 Copies Grid Layout -->
+    <div class="voucher-container max-w-[1250px] mx-auto bg-white p-4 rounded-xl border border-slate-300 shadow-md">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {% for copy_name in copies %}
+            <div class="border-2 border-slate-400 rounded-lg p-3 space-y-3 relative text-[11px] bg-white flex flex-col justify-between">
+                <div>
+                    <!-- Copy Header & Badge -->
+                    <div class="text-center border-b-2 border-slate-800 pb-2">
+                        <h2 class="text-sm font-extrabold tracking-wide uppercase text-[#1b1b6f]">School Management System</h2>
+                        <p class="text-[10px] text-slate-600">Main Campus, Education City • Tel: +92 42 35551234</p>
+                        <span class="inline-block mt-1 px-2 py-0.5 bg-[#ff8000] text-white font-extrabold text-[10px] rounded uppercase tracking-wider">--- {{ copy_name }} ---</span>
+                    </div>
+
+                    <!-- Meta Information Table -->
+                    <table class="w-full border-collapse border border-slate-300 text-[10px] my-2">
+                        <tr class="bg-slate-100">
+                            <th class="border border-slate-300 p-1 text-left font-bold text-slate-700">Voucher #:</th>
+                            <td class="border border-slate-300 p-1 font-mono font-bold">{{ voucher.voucher_number }}</td>
+                        </tr>
+                        <tr>
+                            <th class="border border-slate-300 p-1 text-left font-bold text-slate-700">Month:</th>
+                            <td class="border border-slate-300 p-1 font-semibold">{{ voucher.billing_month }}</td>
+                        </tr>
+                        <tr class="bg-slate-100">
+                            <th class="border border-slate-300 p-1 text-left font-bold text-slate-700">Issue Date:</th>
+                            <td class="border border-slate-300 p-1">{{ voucher.issue_date|date:"d-M-Y" }}</td>
+                        </tr>
+                        <tr>
+                            <th class="border border-slate-300 p-1 text-left font-bold text-slate-700">Due Date:</th>
+                            <td class="border border-slate-300 p-1 font-bold text-rose-700">{{ voucher.due_date|date:"d-M-Y" }}</td>
+                        </tr>
+                        <tr class="bg-slate-100">
+                            <th class="border border-slate-300 p-1 text-left font-bold text-slate-700">Student:</th>
+                            <td class="border border-slate-300 p-1 font-bold">{{ voucher.student.get_full_name }}</td>
+                        </tr>
+                        <tr>
+                            <th class="border border-slate-300 p-1 text-left font-bold text-slate-700">Adm No:</th>
+                            <td class="border border-slate-300 p-1 font-mono">{{ voucher.student.admission_number }}</td>
+                        </tr>
+                        <tr class="bg-slate-100">
+                            <th class="border border-slate-300 p-1 text-left font-bold text-slate-700">Class/Sec:</th>
+                            <td class="border border-slate-300 p-1">{{ voucher.student.class_level.name }} - {{ voucher.student.section.name }}</td>
+                        </tr>
+                    </table>
+
+                    <!-- Fee Particulars Table -->
+                    <table class="w-full border-collapse border border-slate-300 text-[10px]">
+                        <thead class="bg-[#009688] text-white uppercase">
+                            <tr>
+                                <th class="border border-slate-400 p-1 text-left">Particulars</th>
+                                <th class="border border-slate-400 p-1 text-right">Amount (Rs.)</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-200">
+                            {% if voucher.monthly_fee > 0 or voucher.tuition_fee > 0 %}
+                            <tr><td class="p-1">Monthly / Tuition Fee</td><td class="p-1 text-right font-mono">{% if voucher.monthly_fee > 0 %}{{ voucher.monthly_fee|floatformat:2 }}{% else %}{{ voucher.tuition_fee|floatformat:2 }}{% endif %}</td></tr>
+                            {% endif %}
+                            {% if voucher.admission_fee > 0 %}
+                            <tr><td class="p-1">Admission Fee</td><td class="p-1 text-right font-mono">{{ voucher.admission_fee|floatformat:2 }}</td></tr>
+                            {% endif %}
+                            {% if voucher.exam_fee > 0 %}
+                            <tr><td class="p-1">Exam Fee</td><td class="p-1 text-right font-mono">{{ voucher.exam_fee|floatformat:2 }}</td></tr>
+                            {% endif %}
+                            {% if voucher.transport_fee > 0 %}
+                            <tr><td class="p-1">Transport Fee</td><td class="p-1 text-right font-mono">{{ voucher.transport_fee|floatformat:2 }}</td></tr>
+                            {% endif %}
+                            {% if voucher.hostel_fee > 0 %}
+                            <tr><td class="p-1">Hostel Fee</td><td class="p-1 text-right font-mono">{{ voucher.hostel_fee|floatformat:2 }}</td></tr>
+                            {% endif %}
+                            {% if voucher.other_charges > 0 %}
+                            <tr><td class="p-1">Other Charges</td><td class="p-1 text-right font-mono">{{ voucher.other_charges|floatformat:2 }}</td></tr>
+                            {% endif %}
+
+                            <tr class="bg-slate-100 font-bold"><td class="p-1">Subtotal</td><td class="p-1 text-right font-mono">{{ voucher.subtotal|floatformat:2 }}</td></tr>
+
+                            {% if voucher.discount_amount > 0 %}
+                            <tr class="text-emerald-700"><td class="p-1">Discount</td><td class="p-1 text-right font-mono">- {{ voucher.discount_amount|floatformat:2 }}</td></tr>
+                            {% endif %}
+                            {% if voucher.previous_balance > 0 %}
+                            <tr class="text-amber-800"><td class="p-1">Arrears</td><td class="p-1 text-right font-mono">+ {{ voucher.previous_balance|floatformat:2 }}</td></tr>
+                            {% endif %}
+                            {% if voucher.late_fine > 0 %}
+                            <tr class="text-rose-700"><td class="p-1">Late Fine</td><td class="p-1 text-right font-mono">+ {{ voucher.late_fine|floatformat:2 }}</td></tr>
+                            {% endif %}
+
+                            <tr class="bg-amber-100 font-extrabold text-xs">
+                                <td class="p-1.5 text-slate-900">NET PAYABLE</td>
+                                <td class="p-1.5 text-right font-mono text-[#ff8000]">Rs. {{ voucher.total_payable|floatformat:2 }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Bank Instructions & Signatures -->
+                <div class="text-[9px] text-slate-600 space-y-1 pt-2 border-t border-slate-300 mt-2">
+                    <p><strong>Bank:</strong> Allied Bank Ltd (A/C: 0010048291001)</p>
+                    <p><strong>Note:</strong> Pay before due date to avoid Rs. 500 late fine.</p>
+                    <div class="pt-4 flex justify-between text-[9px] text-slate-500 font-semibold">
+                        <span>Depositor Sign: ________</span>
+                        <span>Cashier Sign: ________</span>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</body>
+</html>

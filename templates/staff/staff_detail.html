@@ -1,0 +1,118 @@
+{% extends 'base.html' %}
+{% load i18n %}
+
+{% block title %}{{ staff.get_full_name }} — Faculty Profile{% endblock %}
+{% block header_title %}{% trans "Staff Profile" %}: {{ staff.get_full_name }}{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto space-y-6">
+    <!-- Header Card -->
+    <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row items-center justify-between gap-6">
+        <div class="flex items-center gap-5">
+            <div class="w-20 h-20 rounded-2xl bg-blue-50 border-2 border-blue-200 overflow-hidden flex items-center justify-center text-xl font-bold text-blue-700 shadow-sm">
+                {% if staff.photo %}
+                    <img src="{{ staff.photo.url }}" class="w-full h-full object-cover" alt="Photo">
+                {% else %}
+                    {{ staff.get_full_name|slice:":1"|upper }}
+                {% endif %}
+            </div>
+            <div>
+                <h3 class="text-xl font-bold text-slate-900">{{ staff.get_full_name }}</h3>
+                <p class="text-xs text-blue-600 font-semibold mt-0.5">{{ staff.designation }} &bull; {{ staff.department|default:"Academics" }}</p>
+                <div class="flex flex-wrap items-center gap-4 mt-2 text-xs text-slate-500">
+                    <span>{% trans "Employee ID" %}: <strong class="text-slate-800 font-mono">{{ staff.employee_id }}</strong></span>
+                    <span>{% trans "Type" %}: <strong class="text-slate-800">{{ staff.get_employment_type_display }}</strong></span>
+                    <span class="px-2.5 py-0.5 text-[11px] font-semibold bg-emerald-50 text-emerald-700 rounded-full border border-emerald-200">{{ staff.get_status_display }}</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+            <a href="{% url 'staff_list' %}" class="px-4 py-2 border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-semibold rounded-xl inline-flex items-center gap-1.5 transition">
+                <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i> {% trans "Back" %}
+            </a>
+        </div>
+    </div>
+
+    <!-- Monthly Attendance / Payroll Hook Metric Cards -->
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+            <span class="text-xs font-medium text-slate-500 block">{% trans "Present Days" %}</span>
+            <div class="text-2xl font-bold text-emerald-600 mt-1">{{ payroll_summary.present_days }}</div>
+        </div>
+        <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+            <span class="text-xs font-medium text-slate-500 block">{% trans "Late Days" %}</span>
+            <div class="text-2xl font-bold text-amber-600 mt-1">{{ payroll_summary.late_days }}</div>
+        </div>
+        <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+            <span class="text-xs font-medium text-slate-500 block">{% trans "Leave Days" %}</span>
+            <div class="text-2xl font-bold text-blue-600 mt-1">{{ payroll_summary.leave_days }}</div>
+        </div>
+        <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+            <span class="text-xs font-medium text-slate-500 block">{% trans "Payable Days" %}</span>
+            <div class="text-2xl font-bold text-slate-900 mt-1">{{ payroll_summary.payable_effective_days }}</div>
+        </div>
+    </div>
+
+    <!-- Details Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Personal & Official Details -->
+        <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+            <h4 class="text-sm font-bold text-slate-900 flex items-center gap-2 border-b border-slate-100 pb-3">
+                <i data-lucide="info" class="w-4 h-4 text-blue-600"></i> {% trans "Employment & Personal Particulars" %}
+            </h4>
+
+            <div class="space-y-3 text-xs">
+                <div class="flex justify-between border-b border-slate-100 pb-2">
+                    <span class="text-slate-500">{% trans "National CNIC" %}:</span>
+                    <strong class="text-slate-800 font-mono">{{ staff.cnic|default:"Not Provided" }}</strong>
+                </div>
+                <div class="flex justify-between border-b border-slate-100 pb-2">
+                    <span class="text-slate-500">{% trans "Mobile Phone" %}:</span>
+                    <strong class="text-slate-800 font-semibold">{{ staff.phone }}</strong>
+                </div>
+                <div class="flex justify-between border-b border-slate-100 pb-2">
+                    <span class="text-slate-500">{% trans "Emergency Contact" %}:</span>
+                    <strong class="text-slate-800">{{ staff.emergency_contact|default:"N/A" }}</strong>
+                </div>
+                <div class="flex justify-between border-b border-slate-100 pb-2">
+                    <span class="text-slate-500">{% trans "Qualification" %}:</span>
+                    <strong class="text-slate-800">{{ staff.qualification|default:"N/A" }}</strong>
+                </div>
+                <div class="flex justify-between border-b border-slate-100 pb-2">
+                    <span class="text-slate-500">{% trans "Joining Date" %}:</span>
+                    <strong class="text-slate-800">{{ staff.joining_date|date:"M d, Y" }}</strong>
+                </div>
+                <div class="flex justify-between pb-1">
+                    <span class="text-slate-500">{% trans "Residential Address" %}:</span>
+                    <strong class="text-slate-800 text-right max-w-xs">{{ staff.address|default:"N/A" }}</strong>
+                </div>
+            </div>
+        </div>
+
+        <!-- Assigned Subjects & Classes -->
+        <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+            <h4 class="text-sm font-bold text-slate-900 flex items-center gap-2 border-b border-slate-100 pb-3">
+                <i data-lucide="book-open" class="w-4 h-4 text-emerald-600"></i> {% trans "Assigned Subjects & Workload" %}
+            </h4>
+
+            <div class="space-y-2">
+                {% for assign in assigned_classes %}
+                    <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs flex items-center justify-between">
+                        <div>
+                            <strong class="text-slate-800 block">{{ assign.subject.name }}</strong>
+                            <span class="text-[11px] text-slate-500">{{ assign.class_level.name }} - Section {{ assign.section.name|default:"All" }}</span>
+                        </div>
+                        <span class="px-2 py-1 bg-blue-50 text-blue-700 font-semibold rounded-lg text-xs">
+                            {{ assign.periods_per_week }} {% trans "periods/week" %}
+                        </span>
+                    </div>
+                {% empty %}
+                    <p class="text-xs text-slate-400 italic py-4">{% trans "No academic subject teaching assignments scheduled." %}</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

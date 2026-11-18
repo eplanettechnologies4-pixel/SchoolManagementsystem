@@ -1,0 +1,469 @@
+{% extends 'base.html' %}
+
+{% block title %}Classes & Categories Management — School Management System{% endblock %}
+{% block header_title %}Academic Classes, Wings & Sections{% endblock %}
+
+{% block content %}
+<div class="space-y-6" x-data="{
+    activeCategory: 'ALL',
+    modalClassOpen: false,
+    modalCategoryOpen: false,
+    modalSectionOpen: false,
+    modalEditClassOpen: false,
+    editClassData: { id: '', name: '', code: '', order: 1, category: '' }
+}">
+
+    <!-- Top Action Banner -->
+    <div class="glass-card p-6 rounded-2xl border border-slate-200 bg-white flex flex-wrap items-center justify-between gap-4 shadow-xs">
+        <div>
+            <h3 class="text-lg font-extrabold text-slate-900 flex items-center gap-2">
+                <i data-lucide="layers" class="w-5 h-5 text-blue-600"></i> School Classes & Categories
+            </h3>
+            <p class="text-xs text-slate-500">Configure academic levels (Play Group to Class 10/12), academic wings/categories, and sections.</p>
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+            <button @click="modalClassOpen = true" class="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition shadow-sm shadow-blue-500/20">
+                <i data-lucide="plus" class="w-4 h-4"></i> Add Class
+            </button>
+            <button @click="modalCategoryOpen = true" class="px-3.5 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-xl text-xs font-bold flex items-center gap-1.5 transition">
+                <i data-lucide="folder-plus" class="w-4 h-4"></i> Add Category
+            </button>
+            <button @click="modalSectionOpen = true" class="px-3.5 py-2 bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition">
+                <i data-lucide="layers" class="w-4 h-4"></i> Add Section
+            </button>
+            <a href="{% url 'class_promote' %}" class="px-3.5 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-xl text-xs font-bold flex items-center gap-1.5 transition">
+                <i data-lucide="trending-up" class="w-4 h-4"></i> Promote
+            </a>
+            <a href="{% url 'class_import_csv' %}" class="px-3 py-2 bg-white hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition border border-slate-200 shadow-2xs">
+                <i data-lucide="upload" class="w-3.5 h-3.5 text-slate-500"></i> Import CSV
+            </a>
+        </div>
+    </div>
+
+    <!-- Quick Stats Bar -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
+        <div class="glass-card p-4 rounded-xl border border-slate-200 bg-white flex items-center justify-between shadow-2xs">
+            <div>
+                <span class="text-slate-500 block font-medium">Total Classes</span>
+                <span class="text-2xl font-extrabold text-slate-900 mt-0.5 block">{{ classes.count }}</span>
+            </div>
+            <div class="p-3 bg-blue-50 text-blue-600 rounded-xl border border-blue-100">
+                <i data-lucide="layers" class="w-5 h-5"></i>
+            </div>
+        </div>
+
+        <div class="glass-card p-4 rounded-xl border border-slate-200 bg-white flex items-center justify-between shadow-2xs">
+            <div>
+                <span class="text-slate-500 block font-medium">Categories / Wings</span>
+                <span class="text-2xl font-extrabold text-indigo-700 mt-0.5 block">{{ categories.count }}</span>
+            </div>
+            <div class="p-3 bg-indigo-50 text-indigo-600 rounded-xl border border-indigo-100">
+                <i data-lucide="folder-tree" class="w-5 h-5"></i>
+            </div>
+        </div>
+
+        <div class="glass-card p-4 rounded-xl border border-slate-200 bg-white flex items-center justify-between shadow-2xs">
+            <div>
+                <span class="text-slate-500 block font-medium">Configured Sections</span>
+                <span class="text-2xl font-extrabold text-emerald-700 mt-0.5 block">
+                    {% with total_sec=0 %}
+                        {{ classes|length }} Grades
+                    {% endwith %}
+                </span>
+            </div>
+            <div class="p-3 bg-emerald-50 text-emerald-600 rounded-xl border border-emerald-100">
+                <i data-lucide="layout-grid" class="w-5 h-5"></i>
+            </div>
+        </div>
+
+        <div class="glass-card p-4 rounded-xl border border-slate-200 bg-white flex items-center justify-between shadow-2xs">
+            <div>
+                <span class="text-slate-500 block font-medium">Standard Span</span>
+                <span class="text-xs font-bold text-slate-800 mt-1 block">PG to Class 10/12</span>
+            </div>
+            <div class="p-3 bg-purple-50 text-purple-600 rounded-xl border border-purple-100">
+                <i data-lucide="graduation-cap" class="w-5 h-5"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- Category / Wing Filter Tabs -->
+    <div class="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+        <button type="button"
+                @click="activeCategory = 'ALL'"
+                :class="activeCategory === 'ALL' ? 'bg-blue-600 text-white font-bold shadow-sm shadow-blue-500/30' : 'bg-white text-slate-600 hover:text-slate-900 border border-slate-200 font-semibold'"
+                class="px-3.5 py-1.5 rounded-xl text-xs transition-all flex items-center gap-1.5 whitespace-nowrap">
+            <span>All Classes</span>
+            <span class="text-[10px] px-1.5 py-0.2 rounded-full" :class="activeCategory === 'ALL' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'">{{ classes.count }}</span>
+        </button>
+
+        {% for cat in categories %}
+        <button type="button"
+                @click="activeCategory = '{{ cat.code }}'"
+                :class="activeCategory === '{{ cat.code }}' ? 'bg-blue-600 text-white font-bold shadow-sm shadow-blue-500/30' : 'bg-white text-slate-600 hover:text-slate-900 border border-slate-200 font-semibold'"
+                class="px-3.5 py-1.5 rounded-xl text-xs transition-all flex items-center gap-1.5 whitespace-nowrap">
+            <span>{{ cat.name }}</span>
+            <span class="text-[10px] px-1.5 py-0.2 rounded-full" :class="activeCategory === '{{ cat.code }}' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'">{{ cat.classes.count }}</span>
+        </button>
+        {% endfor %}
+    </div>
+
+    <!-- Classes Grid List -->
+    <div class="grid grid-cols-1 gap-5">
+        {% for cls in classes %}
+        <div class="glass-card p-5 rounded-2xl border border-slate-200 bg-white space-y-4 hover:border-blue-300 hover:shadow-md transition {% if not cls.is_active %}opacity-60 bg-slate-50/60{% endif %}"
+             x-show="activeCategory === 'ALL' || activeCategory === '{{ cls.category.code|default:'' }}'"
+             x-transition>
+            
+            <div class="flex flex-wrap items-center justify-between border-b border-slate-100 pb-4 gap-3">
+                <div class="flex items-center gap-3">
+                    <div class="w-12 h-12 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center font-extrabold text-blue-700 text-base shadow-2xs font-mono">
+                        {{ cls.code }}
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h4 class="text-base font-extrabold text-slate-900">{{ cls.name }}</h4>
+                            {% if cls.category %}
+                                <span class="px-2.5 py-0.5 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-full text-[10px] font-bold">
+                                    {{ cls.category.name }}
+                                </span>
+                            {% endif %}
+                            {% if cls.is_active %}
+                                <span class="px-2 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full text-[10px] font-bold">Active</span>
+                            {% else %}
+                                <span class="px-2 py-0.5 bg-rose-50 text-rose-700 border border-rose-200 rounded-full text-[10px] font-bold">Inactive</span>
+                            {% endif %}
+                        </div>
+                        <p class="text-xs text-slate-500 mt-0.5">
+                            Order: <span class="font-mono text-slate-700 font-semibold">{{ cls.numeric_order }}</span>
+                            {% if cls.description %} • <span class="italic text-slate-400">{{ cls.description }}</span>{% endif %}
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Class Action Buttons -->
+                <div class="flex flex-wrap items-center gap-1.5 text-xs">
+                    <a href="{% url 'class_detail' cls.id %}" class="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-xl font-bold transition flex items-center gap-1">
+                        <i data-lucide="eye" class="w-3.5 h-3.5"></i> Details
+                    </a>
+                    <a href="{% url 'class_export_pdf' cls.id %}" target="_blank" class="px-2.5 py-1.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-xl font-medium transition" title="Export PDF">
+                        <i data-lucide="file-text" class="w-3.5 h-3.5 text-rose-600"></i>
+                    </a>
+                    <a href="{% url 'class_export_excel' cls.id %}" class="px-2.5 py-1.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-xl font-medium transition" title="Export Excel">
+                        <i data-lucide="sheet" class="w-3.5 h-3.5 text-emerald-600"></i>
+                    </a>
+
+                    <!-- Toggle Status -->
+                    <form action="{% url 'class_toggle_status' cls.id %}" method="POST" class="inline">
+                        {% csrf_token %}
+                        <button type="submit" class="px-3 py-1.5 rounded-xl font-semibold border transition flex items-center gap-1 {% if cls.is_active %} bg-slate-50 text-slate-600 border-slate-200 hover:bg-rose-50 hover:text-rose-600 {% else %} bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100 {% endif %}">
+                            <i data-lucide="power" class="w-3 h-3"></i>
+                            <span>{% if cls.is_active %}Disable{% else %}Enable{% endif %}</span>
+                        </button>
+                    </form>
+
+                    <!-- Edit Class Button -->
+                    <button type="button"
+                            @click="editClassData = { id: '{{ cls.id }}', name: '{{ cls.name|escapejs }}', code: '{{ cls.code|escapejs }}', order: '{{ cls.numeric_order }}', category: '{{ cls.category_id|default:'' }}' }; modalEditClassOpen = true"
+                            class="px-3 py-1.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-xl font-semibold transition flex items-center gap-1">
+                        <i data-lucide="edit-3" class="w-3 h-3 text-blue-600"></i> Edit
+                    </button>
+
+                    <!-- Add Section Quick Link -->
+                    <button type="button"
+                            @click="modalSectionOpen = true; $nextTick(() => { const s = document.getElementById('section-class-select'); if(s) s.value = '{{ cls.id }}'; })"
+                            class="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-xl font-bold transition flex items-center gap-1">
+                        <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i> + Section
+                    </button>
+
+                    <!-- Delete Class -->
+                    <form action="{% url 'class_delete' cls.id %}" method="POST" class="inline" onsubmit="return confirm('Are you sure you want to delete class {{ cls.name }}? This will remove all associated sections!');">
+                        {% csrf_token %}
+                        <button type="submit" class="p-1.5 bg-white hover:bg-rose-50 text-slate-400 hover:text-rose-600 border border-slate-200 rounded-xl transition" title="Delete Class">
+                            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Sections List -->
+            <div class="space-y-3 pt-1">
+                <h5 class="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
+                    <i data-lucide="layout-grid" class="w-3.5 h-3.5 text-blue-600"></i> Class Sections ({{ cls.sections.count }})
+                </h5>
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                    {% for sec in cls.sections.all %}
+                    <div class="p-3.5 bg-slate-50/80 rounded-xl border border-slate-200 flex items-center justify-between text-xs hover:border-blue-300 hover:bg-white transition shadow-2xs">
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <strong class="text-slate-900 font-bold text-sm">{{ sec.name }}</strong>
+                                {% if sec.room_number %}
+                                    <span class="text-[10px] text-slate-500 bg-white px-1.5 py-0.5 rounded border border-slate-200">Rm {{ sec.room_number }}</span>
+                                {% endif %}
+                            </div>
+                            <span class="text-slate-500 text-[11px] block mt-1">
+                                Teacher: <span class="text-blue-700 font-semibold">{{ sec.class_teacher.get_full_name|default:"Unassigned" }}</span>
+                            </span>
+                            <span class="text-slate-400 text-[10px] block mt-0.5">Capacity: {{ sec.capacity }} Students</span>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="col-span-full p-4 bg-slate-50 rounded-xl border border-dashed border-slate-200 text-center text-slate-400 italic text-xs">
+                        No sections assigned to {{ cls.name }} yet. Click "+ Section" to create one.
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="glass-card p-12 rounded-2xl border border-slate-200 text-center text-slate-400 space-y-3 bg-white">
+            <i data-lucide="layers" class="w-12 h-12 text-slate-300 mx-auto"></i>
+            <p class="text-sm font-semibold text-slate-700">No school classes configured yet.</p>
+            <button @click="modalClassOpen = true" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold inline-flex items-center gap-2">
+                <i data-lucide="plus" class="w-4 h-4"></i> Add First Class
+            </button>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- ========================================== -->
+    <!-- MODAL 1: ADD NEW CLASS -->
+    <!-- ========================================== -->
+    <div x-show="modalClassOpen" x-cloak style="display: none;"
+         class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+        <div @click.away="modalClassOpen = false"
+             x-show="modalClassOpen"
+             x-transition:enter="transition ease-out duration-200"
+             x-transition:enter-start="opacity-0 scale-95"
+             x-transition:enter-end="opacity-100 scale-100"
+             class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4">
+            
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div class="flex items-center gap-2">
+                    <div class="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                        <i data-lucide="plus" class="w-4 h-4"></i>
+                    </div>
+                    <h4 class="text-base font-bold text-slate-900">Create New Class Level</h4>
+                </div>
+                <button type="button" @click="modalClassOpen = false" class="text-slate-400 hover:text-slate-600">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+            </div>
+
+            <form action="{% url 'class_list' %}" method="POST" class="space-y-4 text-xs">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="create_class">
+                <div>
+                    <label class="block text-slate-700 font-semibold mb-1">Class Name *</label>
+                    <input type="text" name="name" placeholder="e.g. Class 11 or Grade 7" required class="w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-slate-700 font-semibold mb-1">Class Code *</label>
+                        <input type="text" name="code" placeholder="e.g. C11 or NUR" required class="w-full px-3 py-2 border border-slate-300 rounded-xl uppercase focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-slate-700 font-semibold mb-1">Display Order</label>
+                        <input type="number" name="numeric_order" value="1" min="1" class="w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-slate-700 font-semibold mb-1">Academic Category / Wing</label>
+                    <select name="category" class="w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                        <option value="">— Unassigned Category —</option>
+                        {% for cat in categories %}
+                        <option value="{{ cat.id }}">{{ cat.name }} ({{ cat.code }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-slate-700 font-semibold mb-1">Description / Curriculum Stream</label>
+                    <input type="text" name="description" placeholder="e.g. Science / Arts stream details" class="w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                </div>
+                <div class="flex justify-end gap-2 pt-2 border-t border-slate-100">
+                    <button type="button" @click="modalClassOpen = false" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-semibold">Cancel</button>
+                    <button type="submit" class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-md shadow-blue-500/20">Save Class</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- MODAL 2: ADD CATEGORY -->
+    <!-- ========================================== -->
+    <div x-show="modalCategoryOpen" x-cloak style="display: none;"
+         class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+        <div @click.away="modalCategoryOpen = false"
+             x-show="modalCategoryOpen"
+             x-transition:enter="transition ease-out duration-200"
+             x-transition:enter-start="opacity-0 scale-95"
+             x-transition:enter-end="opacity-100 scale-100"
+             class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4">
+            
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div class="flex items-center gap-2">
+                    <div class="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
+                        <i data-lucide="folder-plus" class="w-4 h-4"></i>
+                    </div>
+                    <h4 class="text-base font-bold text-slate-900">Create Academic Wing / Category</h4>
+                </div>
+                <button type="button" @click="modalCategoryOpen = false" class="text-slate-400 hover:text-slate-600">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+            </div>
+
+            <form action="{% url 'class_list' %}" method="POST" class="space-y-4 text-xs">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="create_category">
+                <div>
+                    <label class="block text-slate-700 font-semibold mb-1">Category Name *</label>
+                    <input type="text" name="name" placeholder="e.g. Primary Wing or Cambridge O-Levels" required class="w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-slate-700 font-semibold mb-1">Category Code *</label>
+                        <input type="text" name="code" placeholder="e.g. PRI or CAMB" required class="w-full px-3 py-2 border border-slate-300 rounded-xl uppercase focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-slate-700 font-semibold mb-1">Display Order</label>
+                        <input type="number" name="numeric_order" value="1" min="1" class="w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-slate-700 font-semibold mb-1">Description</label>
+                    <textarea name="description" rows="2" placeholder="e.g. Grades covering Primary Education" class="w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none"></textarea>
+                </div>
+                <div class="flex justify-end gap-2 pt-2 border-t border-slate-100">
+                    <button type="button" @click="modalCategoryOpen = false" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-semibold">Cancel</button>
+                    <button type="submit" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-md shadow-indigo-500/20">Save Category</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- MODAL 3: EDIT CLASS -->
+    <!-- ========================================== -->
+    <div x-show="modalEditClassOpen" x-cloak style="display: none;"
+         class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+        <div @click.away="modalEditClassOpen = false"
+             x-show="modalEditClassOpen"
+             x-transition:enter="transition ease-out duration-200"
+             x-transition:enter-start="opacity-0 scale-95"
+             x-transition:enter-end="opacity-100 scale-100"
+             class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4">
+            
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div class="flex items-center gap-2">
+                    <div class="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                        <i data-lucide="edit-3" class="w-4 h-4"></i>
+                    </div>
+                    <h4 class="text-base font-bold text-slate-900">Edit Academic Class</h4>
+                </div>
+                <button type="button" @click="modalEditClassOpen = false" class="text-slate-400 hover:text-slate-600">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+            </div>
+
+            <form action="{% url 'class_list' %}" method="POST" class="space-y-4 text-xs">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="edit_class">
+                <input type="hidden" name="class_id" :value="editClassData.id">
+                <div>
+                    <label class="block text-slate-700 font-semibold mb-1">Class Name *</label>
+                    <input type="text" name="name" :value="editClassData.name" required class="w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-slate-700 font-semibold mb-1">Class Code *</label>
+                        <input type="text" name="code" :value="editClassData.code" required class="w-full px-3 py-2 border border-slate-300 rounded-xl uppercase focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-slate-700 font-semibold mb-1">Display Order</label>
+                        <input type="number" name="numeric_order" :value="editClassData.order" min="1" class="w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-slate-700 font-semibold mb-1">Category / Wing</label>
+                    <select name="category" class="w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                        <option value="">— Unassigned —</option>
+                        {% for cat in categories %}
+                        <option value="{{ cat.id }}" :selected="editClassData.category == '{{ cat.id }}'">{{ cat.name }} ({{ cat.code }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="flex justify-end gap-2 pt-2 border-t border-slate-100">
+                    <button type="button" @click="modalEditClassOpen = false" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-semibold">Cancel</button>
+                    <button type="submit" class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-md shadow-blue-500/20">Update Class</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- MODAL 4: ADD SECTION -->
+    <!-- ========================================== -->
+    <div x-show="modalSectionOpen" x-cloak style="display: none;"
+         class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+        <div @click.away="modalSectionOpen = false"
+             x-show="modalSectionOpen"
+             x-transition:enter="transition ease-out duration-200"
+             x-transition:enter-start="opacity-0 scale-95"
+             x-transition:enter-end="opacity-100 scale-100"
+             class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4">
+            
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div class="flex items-center gap-2">
+                    <div class="w-8 h-8 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center">
+                        <i data-lucide="layers" class="w-4 h-4"></i>
+                    </div>
+                    <h4 class="text-base font-bold text-slate-900">Add Class Section</h4>
+                </div>
+                <button type="button" @click="modalSectionOpen = false" class="text-slate-400 hover:text-slate-600">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+            </div>
+
+            <form action="{% url 'class_list' %}" method="POST" class="space-y-4 text-xs">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="create_section">
+                <div>
+                    <label class="block text-slate-700 font-semibold mb-1">Target Class Level *</label>
+                    <select name="class_level" id="section-class-select" required class="w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                        {% for cls in classes %}
+                            <option value="{{ cls.id }}">{{ cls.name }} ({{ cls.code }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-slate-700 font-semibold mb-1">Section Name *</label>
+                    <input type="text" name="name" placeholder="e.g. Section A or Jasmine" required class="w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-slate-700 font-semibold mb-1">Room Number</label>
+                        <input type="text" name="room_number" placeholder="e.g. Room 204" class="w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-slate-700 font-semibold mb-1">Student Capacity *</label>
+                        <input type="number" name="capacity" value="40" min="1" max="150" required class="w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-slate-700 font-semibold mb-1">Class Teacher</label>
+                    <select name="class_teacher" class="w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                        <option value="">— None / Unassigned —</option>
+                        {% for t in teachers %}
+                            <option value="{{ t.id }}">{{ t.get_full_name|default:t.username }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="flex justify-end gap-2 pt-2 border-t border-slate-100">
+                    <button type="button" @click="modalSectionOpen = false" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-semibold">Cancel</button>
+                    <button type="submit" class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-md shadow-blue-500/20">Save Section</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

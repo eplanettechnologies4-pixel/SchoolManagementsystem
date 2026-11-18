@@ -1,0 +1,245 @@
+/* ==========================================================================
+   SCHOOL MANAGEMENT SYSTEM — EXECUTIVE BLUE & WHITE DESIGN SYSTEM
+   World-Class Frontend Theme: Pure White, Primary Blue (#1E3A8A / #2563EB)
+   ========================================================================== */
+
+:root {
+    --primary-blue: #1e3a8a;
+    --primary-blue-hover: #1d4ed8;
+    --action-blue: #2563eb;
+    --light-blue-bg: #eff6ff;
+    --border-subtle: #e2e8f0;
+    --border-strong: #cbd5e1;
+    --text-heading: #0f172a;
+    --text-body: #334155;
+    --text-muted: #64748b;
+    --surface-white: #ffffff;
+    --surface-slate: #f8fafc;
+}
+
+/* Global Smooth Rendering */
+html, body {
+    background-color: #f8fafc;
+    color: #1e293b;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* Scrollbar Refinement */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+::-webkit-scrollbar-track {
+    background: #f1f5f9;
+}
+::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
+
+/* ==========================================================================
+   CARDS & CONTAINERS (Crisp White with Subtle Border & Depth)
+   ========================================================================== */
+main .glass-card,
+.card-white {
+    background-color: #ffffff !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 1rem !important;
+    box-shadow: 0 1px 3px 0 rgba(15, 23, 42, 0.05), 0 1px 2px -1px rgba(15, 23, 42, 0.03) !important;
+    backdrop-filter: none !important;
+    color: #1e293b !important;
+    transition: box-shadow 0.2s ease, border-color 0.2s ease !important;
+}
+
+main .glass-card:hover {
+    border-color: #cbd5e1 !important;
+    box-shadow: 0 4px 6px -1px rgba(15, 23, 42, 0.06), 0 2px 4px -2px rgba(15, 23, 42, 0.04) !important;
+}
+
+/* Typography Inside Right Content Cards */
+main .glass-card h1,
+main .glass-card h2,
+main .glass-card h3,
+main .glass-card h4,
+main .glass-card h5,
+main h2,
+main h3,
+main h4 {
+    color: #0f172a !important;
+    font-weight: 700 !important;
+}
+
+main p,
+main span.text-slate-400,
+main span.text-slate-500 {
+    color: #64748b !important;
+}
+
+main strong,
+main b {
+    color: #0f172a !important;
+}
+
+/* Slate Dark Overrides in Main Right Content */
+main .bg-slate-900,
+main .bg-slate-950,
+main .bg-slate-900\/60,
+main .bg-slate-950\/60,
+main .bg-slate-900\/70,
+main .bg-slate-950\/70,
+main .bg-slate-900\/80,
+main .bg-slate-950\/80,
+main .bg-slate-900\/90,
+main .bg-slate-950\/90 {
+    background-color: #f8fafc !important;
+    border-color: #e2e8f0 !important;
+    color: #1e293b !important;
+}
+
+main .border-slate-800,
+main .border-slate-700,
+main .border-slate-800\/80,
+main .border-slate-800\/60 {
+    border-color: #e2e8f0 !important;
+}
+
+/* ==========================================================================
+   TABLES & LIST DATA
+   ========================================================================== */
+main table {
+    background-color: #ffffff !important;
+    border-collapse: separate !important;
+    border-spacing: 0 !important;
+    width: 100% !important;
+}
+
+main thead,
+main thead.bg-slate-950,
+main thead.bg-slate-950\/60 {
+    background-color: #f8fafc !important;
+    border-bottom: 2px solid #e2e8f0 !important;
+}
+
+main thead th {
+    color: #475569 !important;
+    font-weight: 600 !important;
+    font-size: 0.72rem !important;
+    letter-spacing: 0.05em !important;
+    text-transform: uppercase !important;
+    border-bottom: 1px solid #e2e8f0 !important;
+}
+
+main tbody tr {
+    background-color: #ffffff !important;
+    border-bottom: 1px solid #f1f5f9 !important;
+    transition: background-color 0.15s ease !important;
+}
+
+main tbody tr:hover {
+    background-color: #f0f7ff !important;
+}
+
+main tbody td {
+    color: #334155 !important;
+    border-bottom: 1px solid #f1f5f9 !important;
+}
+
+main tbody td .text-white {
+    color: #0f172a !important;
+}
+
+main tbody td.font-semibold {
+    color: #0f172a !important;
+}
+
+/* ==========================================================================
+   INPUTS & FORM CONTROLS
+   ========================================================================== */
+main input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]),
+main select,
+main textarea {
+    background-color: #ffffff !important;
+    border: 1px solid #cbd5e1 !important;
+    color: #0f172a !important;
+    border-radius: 0.75rem !important;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease !important;
+}
+
+main input:focus,
+main select:focus,
+main textarea:focus {
+    border-color: #2563eb !important;
+    outline: none !important;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15) !important;
+}
+
+main input::placeholder,
+main textarea::placeholder {
+    color: #94a3b8 !important;
+}
+
+/* ==========================================================================
+   PRIMARY BLUE BUTTONS & CONTROLS
+   ========================================================================== */
+.btn-primary-blue,
+main button[type="submit"]:not(.btn-danger):not(.btn-secondary) {
+    background-color: #2563eb !important;
+    color: #ffffff !important;
+    border: 1px solid #2563eb !important;
+    font-weight: 600 !important;
+    box-shadow: 0 1px 2px 0 rgba(37, 99, 235, 0.2) !important;
+    transition: all 0.2s ease !important;
+}
+
+.btn-primary-blue:hover,
+main button[type="submit"]:not(.btn-danger):not(.btn-secondary):hover {
+    background-color: #1d4ed8 !important;
+    border-color: #1d4ed8 !important;
+    box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.3) !important;
+    transform: translateY(-1px) !important;
+}
+
+.btn-secondary-white {
+    background-color: #ffffff !important;
+    color: #334155 !important;
+    border: 1px solid #cbd5e1 !important;
+    transition: all 0.2s ease !important;
+}
+
+.btn-secondary-white:hover {
+    background-color: #f8fafc !important;
+    border-color: #94a3b8 !important;
+    color: #0f172a !important;
+}
+
+/* ==========================================================================
+   STATUS BADGES & ACCENTS
+   ========================================================================== */
+.badge-blue {
+    background-color: #eff6ff !important;
+    color: #1d4ed8 !important;
+    border: 1px solid #bfdbfe !important;
+}
+
+.badge-emerald {
+    background-color: #ecfdf5 !important;
+    color: #047857 !important;
+    border: 1px solid #a7f3d0 !important;
+}
+
+.badge-amber {
+    background-color: #fffbeb !important;
+    color: #b45309 !important;
+    border: 1px solid #fde68a !important;
+}
+
+.badge-rose {
+    background-color: #fef2f2 !important;
+    color: #b91c1c !important;
+    border: 1px solid #fecaca !important;
+}

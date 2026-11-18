@@ -1,0 +1,279 @@
+﻿{% extends 'base.html' %}
+
+{% block title %}Fee Voucher #{{ voucher.voucher_number }} — School Management System{% endblock %}
+{% block header_title %}Fee Voucher Details & Payment Tracking{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto space-y-6">
+    <!-- Top Action Ribbon -->
+    <div class="glass-card p-6 rounded-2xl border border-slate-800 flex flex-wrap items-center justify-between gap-4">
+        <div>
+            <div class="flex items-center gap-3">
+                <h3 class="text-xl font-bold text-white font-mono">Voucher #{{ voucher.voucher_number }}</h3>
+                <span class="px-3 py-1 text-xs font-bold rounded-full uppercase tracking-wider
+                    {% if voucher.status == 'PAID' %} bg-[#9ece38]/15 text-[#9ece38] border border-[#9ece38]/30
+                    {% elif voucher.status == 'PARTIALLY_PAID' %} bg-[#009688]/15 text-[#009688] border border-[#009688]/30
+                    {% elif voucher.status == 'OVERDUE' %} bg-rose-500/15 text-rose-400 border border-rose-500/30
+                    {% elif voucher.status == 'CANCELLED' %} bg-slate-800 text-slate-500 border border-slate-700
+                    {% else %} bg-[#ff8000]/15 text-[#ff8000] border border-[#ff8000]/30 {% endif %}">
+                    {{ voucher.get_status_display }}
+                </span>
+            </div>
+            <p class="text-xs text-slate-400 mt-1">Billing Month: <strong class="text-white">{{ voucher.billing_month }}</strong> • Student: <strong class="text-white">{{ voucher.student.get_full_name }}</strong> ({{ voucher.student.admission_number }})</p>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-2">
+            <!-- WhatsApp Action Button -->
+            <button type="button" onclick="openWhatsAppModal()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-xs flex items-center gap-2 shadow-lg shadow-emerald-600/25 transition">
+                <i data-lucide="message-square" class="w-4 h-4"></i>
+                {% if voucher.status == 'PAID' %}Resend Receipt via WhatsApp{% else %}Send via WhatsApp{% endif %}
+            </button>
+
+            <!-- PDF Download -->
+            <a href="{% url 'voucher_pdf' voucher.id %}" target="_blank" class="px-3 py-2 bg-[#ff8000]/20 hover:bg-[#ff8000]/30 text-[#ff8000] border border-[#ff8000]/40 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition">
+                <i data-lucide="file-text" class="w-4 h-4"></i> Download PDF
+            </a>
+
+            <!-- Printable Voucher -->
+            <a href="{% url 'voucher_print' voucher.id %}" target="_blank" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition">
+                <i data-lucide="printer" class="w-4 h-4"></i> Print Voucher (3 Copies)
+            </a>
+
+            {% if voucher.status != 'PAID' and voucher.status != 'CANCELLED' %}
+            <a href="{% url 'record_payment' voucher.id %}" class="px-4 py-2 bg-gradient-to-r from-[#ff8000] to-[#9ece38] hover:from-[#ff8000]/90 hover:to-[#9ece38]/90 text-slate-950 font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-lg transition">
+                <i data-lucide="credit-card" class="w-4 h-4"></i> Receive Payment
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Student & Guardian Information Banner -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+        <div class="glass-card p-5 rounded-2xl border border-slate-800 space-y-2">
+            <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Student Profile</span>
+            <h4 class="text-base font-bold text-white">{{ voucher.student.get_full_name }}</h4>
+            <div class="text-xs text-slate-300 space-y-1">
+                <p>Admission #: <span class="font-mono text-[#ff8000]">{{ voucher.student.admission_number }}</span></p>
+                <p>Class & Sec: <span class="text-[#9ece38] font-semibold">{{ voucher.student.class_level.name }} - {{ voucher.student.section.name }}</span></p>
+                <p>Roll #: <span class="font-mono">{{ voucher.student.roll_number }}</span></p>
+            </div>
+        </div>
+
+        <div class="glass-card p-5 rounded-2xl border border-slate-800 space-y-2">
+            <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Guardian & Contact</span>
+            <h4 class="text-base font-bold text-white">
+                {% if voucher.student.guardian %}{{ voucher.student.guardian.get_full_name }}{% else %}N/A{% endif %}
+            </h4>
+            <div class="text-xs text-slate-300 space-y-1">
+                <p>Relation: {{ voucher.student.guardian.relation|default:"Parent" }}</p>
+                <p>Mobile / WhatsApp: <span class="font-mono text-[#009688] font-bold">{{ wa_data.phone_number|default:"Not specified" }}</span></p>
+                {% if not wa_data.is_valid %}
+                    <span class="text-rose-400 text-[10px] block">⚠️ {{ wa_data.error }}</span>
+                {% else %}
+                    <span class="text-[#9ece38] text-[10px] block">✓ Verified for WhatsApp Notifications</span>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="glass-card p-5 rounded-2xl border border-slate-800 space-y-2">
+            <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Voucher Timeline</span>
+            <div class="text-xs text-slate-300 space-y-1.5">
+                <p class="flex justify-between"><span>Issue Date:</span> <strong class="text-white">{{ voucher.issue_date|date:"d-M-Y" }}</strong></p>
+                <p class="flex justify-between"><span>Due Date:</span> <strong class="text-amber-400">{{ voucher.due_date|date:"d-M-Y" }}</strong></p>
+                <p class="flex justify-between"><span>Academic Session:</span> <strong class="text-white">{{ voucher.academic_session }}</strong></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Fee Particulars Breakdown Table -->
+    <div class="glass-card p-6 rounded-2xl border border-slate-800 space-y-4">
+        <h4 class="text-sm font-bold text-white flex items-center gap-2">
+            <i data-lucide="list-checks" class="w-4 h-4 text-[#ff8000]"></i> Fee Particulars & Financial Summary
+        </h4>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs text-slate-300">
+                <thead class="bg-slate-950/60 text-slate-400 uppercase tracking-wider font-semibold border-b border-slate-800">
+                    <tr>
+                        <th class="px-4 py-3">Fee Item Description</th>
+                        <th class="px-4 py-3 text-right">Amount (Rs.)</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-800/60">
+                    {% if voucher.tuition_fee > 0 %}
+                    <tr>
+                        <td class="px-4 py-2.5">Tuition Fee</td>
+                        <td class="px-4 py-2.5 text-right font-mono text-white">Rs. {{ voucher.tuition_fee|floatformat:2 }}</td>
+                    </tr>
+                    {% endif %}
+                    {% if voucher.admission_fee > 0 %}
+                    <tr>
+                        <td class="px-4 py-2.5">Admission Fee</td>
+                        <td class="px-4 py-2.5 text-right font-mono text-white">Rs. {{ voucher.admission_fee|floatformat:2 }}</td>
+                    </tr>
+                    {% endif %}
+                    {% if voucher.exam_fee > 0 %}
+                    <tr>
+                        <td class="px-4 py-2.5">Examination Fee</td>
+                        <td class="px-4 py-2.5 text-right font-mono text-white">Rs. {{ voucher.exam_fee|floatformat:2 }}</td>
+                    </tr>
+                    {% endif %}
+                    {% if voucher.transport_fee > 0 %}
+                    <tr>
+                        <td class="px-4 py-2.5">Transport Fee</td>
+                        <td class="px-4 py-2.5 text-right font-mono text-white">Rs. {{ voucher.transport_fee|floatformat:2 }}</td>
+                    </tr>
+                    {% endif %}
+                    {% if voucher.hostel_fee > 0 %}
+                    <tr>
+                        <td class="px-4 py-2.5">Hostel Fee</td>
+                        <td class="px-4 py-2.5 text-right font-mono text-white">Rs. {{ voucher.hostel_fee|floatformat:2 }}</td>
+                    </tr>
+                    {% endif %}
+                    {% if voucher.other_charges > 0 %}
+                    <tr>
+                        <td class="px-4 py-2.5">Other Charges</td>
+                        <td class="px-4 py-2.5 text-right font-mono text-white">Rs. {{ voucher.other_charges|floatformat:2 }}</td>
+                    </tr>
+                    {% endif %}
+
+                    <!-- Subtotal -->
+                    <tr class="bg-slate-950/40 font-bold border-t border-slate-700">
+                        <td class="px-4 py-2.5 text-slate-300">Subtotal Before Adjustments</td>
+                        <td class="px-4 py-2.5 text-right font-mono text-white">Rs. {{ voucher.subtotal|floatformat:2 }}</td>
+                    </tr>
+
+                    {% if voucher.discount_amount > 0 %}
+                    <tr class="text-[#9ece38]">
+                        <td class="px-4 py-2.5">Discount / Scholarship Concession {% if voucher.discount_remarks %}({{ voucher.discount_remarks }}){% endif %}</td>
+                        <td class="px-4 py-2.5 text-right font-mono">- Rs. {{ voucher.discount_amount|floatformat:2 }}</td>
+                    </tr>
+                    {% endif %}
+                    {% if voucher.previous_balance > 0 %}
+                    <tr class="text-amber-400">
+                        <td class="px-4 py-2.5">Previous Arrears Outstanding</td>
+                        <td class="px-4 py-2.5 text-right font-mono">+ Rs. {{ voucher.previous_balance|floatformat:2 }}</td>
+                    </tr>
+                    {% endif %}
+                    {% if voucher.late_fine > 0 %}
+                    <tr class="text-rose-400">
+                        <td class="px-4 py-2.5">Late Fine Penalty</td>
+                        <td class="px-4 py-2.5 text-right font-mono">+ Rs. {{ voucher.late_fine|floatformat:2 }}</td>
+                    </tr>
+                    {% endif %}
+
+                    <!-- Final Payable & Balances -->
+                    <tr class="bg-slate-950 font-bold text-sm border-t-2 border-slate-700">
+                        <td class="px-4 py-3 text-white">TOTAL PAYABLE AMOUNT</td>
+                        <td class="px-4 py-3 text-right font-mono text-[#ff8000]">Rs. {{ voucher.total_payable|floatformat:2 }}</td>
+                    </tr>
+                    <tr class="bg-slate-900/80 font-semibold text-xs">
+                        <td class="px-4 py-2.5 text-emerald-400">Total Amount Paid to Date</td>
+                        <td class="px-4 py-2.5 text-right font-mono text-emerald-400">Rs. {{ voucher.paid_amount|floatformat:2 }}</td>
+                    </tr>
+                    <tr class="bg-slate-900/80 font-semibold text-xs">
+                        <td class="px-4 py-2.5 text-amber-400">Remaining Balance Pending</td>
+                        <td class="px-4 py-2.5 text-right font-mono text-amber-400">Rs. {{ voucher.remaining_balance|floatformat:2 }}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Payment Receipts History -->
+    <div class="glass-card p-6 rounded-2xl border border-slate-800 space-y-4">
+        <div class="flex items-center justify-between">
+            <h4 class="text-sm font-bold text-white flex items-center gap-2">
+                <i data-lucide="history" class="w-4 h-4 text-[#009688]"></i> Payment Collection History
+            </h4>
+            {% if voucher.status != 'PAID' and voucher.status != 'CANCELLED' %}
+            <a href="{% url 'record_payment' voucher.id %}" class="px-3 py-1.5 bg-[#009688]/20 hover:bg-[#009688]/30 text-[#9ece38] border border-[#009688]/40 rounded-xl text-xs font-bold transition">
+                + Record Payment
+            </a>
+            {% endif %}
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs text-slate-300">
+                <thead class="bg-slate-950/60 text-slate-400 uppercase tracking-wider font-semibold border-b border-slate-800">
+                    <tr>
+                        <th class="px-4 py-3">Receipt #</th>
+                        <th class="px-4 py-3">Payment Date</th>
+                        <th class="px-4 py-3">Amount Paid</th>
+                        <th class="px-4 py-3">Payment Method</th>
+                        <th class="px-4 py-3">Reference / Txn</th>
+                        <th class="px-4 py-3">Received By</th>
+                        <th class="px-4 py-3 text-right">Receipt PDF</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-800/60">
+                    {% for p in payments %}
+                    <tr class="hover:bg-slate-800/40 transition">
+                        <td class="px-4 py-3 font-mono text-[#ff8000] font-bold">{{ p.receipt_number }}</td>
+                        <td class="px-4 py-3 font-mono">{{ p.payment_date|date:"d-M-Y" }}</td>
+                        <td class="px-4 py-3 font-bold text-[#9ece38]">Rs. {{ p.amount_paid|floatformat:2 }}</td>
+                        <td class="px-4 py-3">{{ p.get_payment_method_display }}</td>
+                        <td class="px-4 py-3 font-mono text-slate-400">{{ p.transaction_reference|default:"N/A" }}</td>
+                        <td class="px-4 py-3">{{ p.received_by.get_full_name|default:"Cashier" }}</td>
+                        <td class="px-4 py-3 text-right space-x-1">
+                            <a href="{% url 'receipt_pdf' p.id %}" target="_blank" class="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-[10px] border border-slate-700 font-semibold">PDF Receipt</a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="px-4 py-6 text-center text-slate-500">No payment receipts recorded for this voucher yet.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- WhatsApp Dispatch Modal -->
+<div id="whatsappModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+    <div class="glass-card max-w-lg w-full p-6 rounded-2xl border border-emerald-500/40 shadow-2xl space-y-4 relative">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+            <h4 class="text-base font-bold text-white flex items-center gap-2">
+                <i data-lucide="message-square" class="w-5 h-5 text-emerald-400"></i> Send Fee Voucher via WhatsApp
+            </h4>
+            <button type="button" onclick="closeWhatsAppModal()" class="text-slate-400 hover:text-white">✕</button>
+        </div>
+
+        <div class="space-y-3 text-xs">
+            {% if not wa_data.is_valid %}
+                <div class="p-3 bg-rose-500/10 border border-rose-500/30 rounded-xl text-rose-400">
+                    <strong>Cannot Send Notification:</strong> {{ wa_data.error }}
+                </div>
+            {% else %}
+                <div class="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-emerald-300">
+                    <strong>Recipient:</strong> {{ voucher.student.guardian.get_full_name|default:"Parent" }} (<span class="font-mono">{{ wa_data.formatted_phone }}</span>)
+                </div>
+
+                <div class="space-y-1">
+                    <label class="block font-semibold text-slate-300">Message Preview:</label>
+                    <textarea readonly rows="9" class="w-full p-3 bg-slate-950 font-mono text-[11px] text-slate-200 border border-slate-800 rounded-xl focus:outline-none">{{ wa_data.message_text }}</textarea>
+                </div>
+
+                <div class="pt-2 flex items-center justify-end gap-3">
+                    <button type="button" onclick="closeWhatsAppModal()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold">Cancel</button>
+                    <a href="{{ wa_data.whatsapp_url }}" target="_blank" onclick="closeWhatsAppModal()" class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-xs flex items-center gap-2 shadow-lg shadow-emerald-600/30 transition">
+                        <i data-lucide="send" class="w-4 h-4"></i> Confirm & Open WhatsApp
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function openWhatsAppModal() {
+        document.getElementById('whatsappModal').classList.remove('hidden');
+    }
+    function closeWhatsAppModal() {
+        document.getElementById('whatsappModal').classList.add('hidden');
+    }
+</script>
+{% endblock %}

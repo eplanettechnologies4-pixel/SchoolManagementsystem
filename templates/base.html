@@ -1,0 +1,958 @@
+<!DOCTYPE html>
+{% load static %}
+{% load i18n %}
+<html lang="en" class="h-full bg-slate-50 text-slate-900">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}School Management System{% endblock %}</title>
+    <!-- Google Fonts: Outfit & Plus Jakarta Sans -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+        rel="stylesheet">
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Plus Jakarta Sans"', 'Outfit', 'sans-serif'],
+                    },
+                    colors: {
+                        primary: {
+                            50: '#eff6ff',
+                            100: '#dbeafe',
+                            200: '#bfdbfe',
+                            300: '#93c5fd',
+                            400: '#60a5fa',
+                            500: '#3b82f6',
+                            600: '#2563eb', // Core Primary Action Blue
+                            700: '#1d4ed8', // Bold Primary Blue
+                            800: '#1e40af', // Deep Royal Blue
+                            900: '#1e3a8a', // Dark Royal Navy (Sidebar)
+                            950: '#172554',
+                        },
+                        brand: {
+                            50: '#eff6ff',
+                            100: '#dbeafe',
+                            500: '#2563eb',
+                            600: '#1d4ed8',
+                            700: '#1e3a8a',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Custom CSS Overrides for White & Primary Blue Palette -->
+    <link rel="stylesheet" href="{% static 'css/custom.css' %}">
+    <link rel="manifest" href="{% static 'manifest.json' %}">
+    <meta name="theme-color" content="#1e3a8a">
+
+    <!-- Alpine.js CDN for Reactive Dropdowns & Collapsible Navigation -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js"></script>
+
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        [x-cloak] {
+            display: none !important;
+        }
+
+        .glass-card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 1px 3px 0 rgba(15, 23, 42, 0.04), 0 1px 2px -1px rgba(15, 23, 42, 0.02);
+        }
+
+        .glass-nav {
+            background: #ffffff;
+            border-bottom: 1px solid #e2e8f0;
+            box-shadow: 0 1px 2px 0 rgba(15, 23, 42, 0.03);
+        }
+
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+</head>
+
+<body class="h-full flex overflow-hidden font-sans antialiased bg-[#f8fafc] text-slate-800" x-data="{
+          sidebarHovered: false,
+          sidebarPinned: false,
+          activeSubmenu: '{% if " student" in request.path %}students{% elif "academics" in request.path %}academics{%
+    elif "staff" in request.path %}staff{% elif "fee" in request.path %}fees{% elif "report" in request.path %}reports{%
+    elif "role" in request.path %}admin{% else %}dashboard{% endif %}', isExpanded() { return this.sidebarHovered ||
+    this.sidebarPinned; } }">
+
+    {% if user.is_authenticated %}
+    <!-- Modern Hover-Expandable Sidebar with Sub-Navigation for All Modules -->
+    <aside @mouseenter="sidebarHovered = true" @mouseleave="sidebarHovered = false"
+        :class="isExpanded() ? 'w-72' : 'w-20'"
+        class="bg-[#1e3a8a] text-white flex flex-col flex-shrink-0 z-40 transition-all duration-300 ease-in-out shadow-2xl border-r border-blue-900/80 relative select-none">
+
+        <!-- Brand Header with Expand Indicator & Pin Action -->
+        <div class="h-16 flex items-center justify-between px-4 border-b border-blue-800/80 bg-blue-950/50">
+            <div class="flex items-center gap-3 min-w-0">
+                <div
+                    class="w-10 h-10 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center font-bold text-white shadow-sm backdrop-blur shrink-0">
+                    <i data-lucide="graduation-cap" class="w-5 h-5 text-blue-200"></i>
+                </div>
+                <div x-show="isExpanded()" x-cloak x-transition:enter="transition ease-out duration-200"
+                    x-transition:enter-start="opacity-0 -translate-x-2"
+                    x-transition:enter-end="opacity-100 translate-x-0" class="min-w-0">
+                    <h1 class="font-extrabold text-xs text-white tracking-wider truncate">SCHOOL MANAGEMENT</h1>
+                    <p class="text-[9px] text-blue-200 font-bold tracking-widest uppercase">SYSTEM PORTAL</p>
+                </div>
+            </div>
+
+            <!-- Pin / Unpin Sidebar Toggle Button -->
+            <button type="button" x-show="isExpanded()" x-cloak @click="sidebarPinned = !sidebarPinned"
+                :class="sidebarPinned ? 'text-amber-400 bg-white/15' : 'text-blue-300 hover:text-white hover:bg-white/10'"
+                class="p-1.5 rounded-lg transition"
+                :title="sidebarPinned ? 'Unpin Sidebar (Auto-collapse on mouse leave)' : 'Pin Sidebar Open'">
+                <i data-lucide="pin" class="w-3.5 h-3.5" :class="sidebarPinned ? 'rotate-45' : ''"></i>
+            </button>
+        </div>
+
+        <!-- Role Badge -->
+        <div class="px-4 py-2.5 border-b border-blue-800/60 bg-blue-900/30 flex items-center justify-between">
+            <div class="flex items-center gap-2 min-w-0">
+                <span class="w-2 h-2 rounded-full bg-emerald-400 shrink-0 ring-4 ring-emerald-400/20"></span>
+                <span x-show="isExpanded()" x-cloak class="text-[11px] text-blue-200/90 font-medium truncate">
+                    Active: <strong class="text-white">{{ user.get_display_role_name }}</strong>
+                </span>
+            </div>
+            <span x-show="isExpanded()" x-cloak
+                class="px-2 py-0.5 text-[9px] font-bold rounded-full uppercase tracking-wider bg-white/15 text-white border border-white/20">
+                {{ user.get_role_display }}
+            </span>
+        </div>
+
+        <!-- Navigation Modules with Subnavs -->
+        <nav class="flex-1 px-2.5 py-3 space-y-1 overflow-y-auto">
+
+            <!-- 1. DASHBOARD MODULE -->
+            <div class="relative group/nav" x-data="{ open: activeSubmenu === 'dashboard' }">
+                <button type="button" @click="activeSubmenu = activeSubmenu === 'dashboard' ? null : 'dashboard'"
+                    :class="activeSubmenu === 'dashboard' || ('dashboard' in request.path and 'staff' not in request.path and 'fee' not in request.path) ? 'bg-white/15 text-white font-bold' : 'text-blue-100 hover:bg-white/10 hover:text-white'"
+                    class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs transition-all">
+                    <div class="flex items-center gap-3 min-w-0">
+                        <div
+                            class="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 {% if 'dashboard' in request.path and 'staff' not in request.path and 'fee' not in request.path %} bg-white text-blue-900 {% else %} bg-white/10 text-blue-200 {% endif %}">
+                            <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
+                        </div>
+                        <span x-show="isExpanded()" x-cloak class="truncate font-semibold">{% trans "Dashboard"
+                            %}</span>
+                    </div>
+                    <i x-show="isExpanded()" x-cloak data-lucide="chevron-down"
+                        class="w-3.5 h-3.5 transition-transform duration-200 text-blue-300"
+                        :class="activeSubmenu === 'dashboard' ? 'rotate-180' : ''"></i>
+                </button>
+
+                <!-- Subnav Accordion (When Expanded) -->
+                <div x-show="isExpanded() && activeSubmenu === 'dashboard'" x-cloak
+                    class="mt-1 ml-4 pl-4 border-l-2 border-blue-400/30 space-y-1 text-xs py-1">
+                    <a href="{% url 'dashboard_router' %}"
+                        class="flex items-center gap-2 py-1.5 px-2.5 rounded-lg transition {% if request.path == '/' or '/dashboard/' in request.path and 'admin' in request.path or 'teacher' in request.path or 'student' in request.path %} bg-white/20 text-white font-bold {% else %} text-blue-200 hover:text-white hover:bg-white/10 {% endif %}">
+                        <span class="w-1.5 h-1.5 rounded-full bg-blue-300"></span>
+                        <span>{% trans "Overview Dashboard" %}</span>
+                    </a>
+                    {% if is_teacher %}
+                    <a href="{% url 'staff_dashboard' %}"
+                        class="flex items-center gap-2 py-1.5 px-2.5 rounded-lg text-blue-200 hover:text-white hover:bg-white/10 transition">
+                        <span class="w-1.5 h-1.5 rounded-full bg-blue-300"></span>
+                        <span>{% trans "Attendance Check-in" %}</span>
+                    </a>
+                    {% endif %}
+                    {% if is_admin or is_accountant %}
+                    <a href="{% url 'fee_dashboard' %}"
+                        class="flex items-center gap-2 py-1.5 px-2.5 rounded-lg text-blue-200 hover:text-white hover:bg-white/10 transition">
+                        <span class="w-1.5 h-1.5 rounded-full bg-blue-300"></span>
+                        <span>{% trans "Fee Metrics" %}</span>
+                    </a>
+                    {% endif %}
+                </div>
+
+                <!-- Floating Flyout Submenu (When Compact Rail) -->
+                <div x-show="!isExpanded()" x-cloak
+                    class="absolute left-full top-0 ml-3 w-56 bg-slate-900 border border-blue-800/80 rounded-2xl p-2.5 shadow-2xl z-50 invisible group-hover/nav:visible opacity-0 group-hover/nav:opacity-100 translate-x-2 group-hover/nav:translate-x-0 transition-all duration-200 text-xs space-y-1">
+                    <div
+                        class="px-2 py-1 font-bold text-white border-b border-slate-800 mb-1 flex items-center justify-between">
+                        <span>{% trans "Dashboard" %}</span>
+                        <span class="text-[9px] bg-blue-600 text-white px-1.5 py-0.5 rounded">Home</span>
+                    </div>
+                    <a href="{% url 'dashboard_router' %}"
+                        class="block px-2.5 py-1.5 rounded-lg text-slate-300 hover:bg-blue-600 hover:text-white">{%
+                        trans "Overview Dashboard" %}</a>
+                    {% if is_teacher %}
+                    <a href="{% url 'staff_dashboard' %}"
+                        class="block px-2.5 py-1.5 rounded-lg text-slate-300 hover:bg-blue-600 hover:text-white">{%
+                        trans "Attendance Check-in" %}</a>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- 2. STUDENTS (SIS) MODULE -->
+            {% if is_admin or is_teacher %}
+            <div class="relative group/nav" x-data="{ open: activeSubmenu === 'students' }">
+                <button type="button" @click="activeSubmenu = activeSubmenu === 'students' ? null : 'students'"
+                    :class="activeSubmenu === 'students' || ('student' in request.path) ? 'bg-white/15 text-white font-bold' : 'text-blue-100 hover:bg-white/10 hover:text-white'"
+                    class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs transition-all">
+                    <div class="flex items-center gap-3 min-w-0">
+                        <div
+                            class="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 {% if 'student' in request.path %} bg-white text-blue-900 {% else %} bg-white/10 text-blue-200 {% endif %}">
+                            <i data-lucide="users" class="w-4 h-4"></i>
+                        </div>
+                        <span x-show="isExpanded()" x-cloak class="truncate font-semibold">{% trans "Students (SIS)"
+                            %}</span>
+                    </div>
+                    <i x-show="isExpanded()" x-cloak data-lucide="chevron-down"
+                        class="w-3.5 h-3.5 transition-transform duration-200 text-blue-300"
+                        :class="activeSubmenu === 'students' ? 'rotate-180' : ''"></i>
+                </button>
+
+                <!-- Subnav Accordion -->
+                <div x-show="isExpanded() && activeSubmenu === 'students'" x-cloak
+                    class="mt-1 ml-4 pl-4 border-l-2 border-blue-400/30 space-y-1 text-xs py-1">
+                    <a href="{% url 'student_list' %}"
+                        class="flex items-center gap-2 py-1.5 px-2.5 rounded-lg transition {% if 'student' in request.path and 'admission' not in request.path and 'import' not in request.path %} bg-white/20 text-white font-bold {% else %} text-blue-200 hover:text-white hover:bg-white/10 {% endif %}">
+                        <span class="w-1.5 h-1.5 rounded-full bg-blue-300"></span>
+                        <span>{% trans "Student Directory" %}</span>
+                    </a>
+                    {% if is_admin %}
+                    <a href="{% url 'student_admission' %}"
+                        class="flex items-center gap-2 py-1.5 px-2.5 rounded-lg transition {% if 'admission' in request.path %} bg-white/20 text-white font-bold {% else %} text-blue-200 hover:text-white hover:bg-white/10 {% endif %}">
+                        <span class="w-1.5 h-1.5 rounded-full bg-blue-300"></span>
+                        <span>{% trans "New Admission Wizard" %}</span>
+                    </a>
+                    <a href="{% url 'student_import_csv' %}"
+                        class="flex items-center gap-2 py-1.5 px-2.5 rounded-lg text-blue-200 hover:text-white hover:bg-white/10 transition">
+                        <span class="w-1.5 h-1.5 rounded-full bg-blue-300"></span>
+                        <span>{% trans "Import CSV" %}</span>
+                    </a>
+                    {% endif %}
+                </div>
+
+                <!-- Flyout Popover -->
+                <div x-show="!isExpanded()" x-cloak
+                    class="absolute left-full top-0 ml-3 w-56 bg-slate-900 border border-blue-800/80 rounded-2xl p-2.5 shadow-2xl z-50 invisible group-hover/nav:visible opacity-0 group-hover/nav:opacity-100 translate-x-2 group-hover/nav:translate-x-0 transition-all duration-200 text-xs space-y-1">
+                    <div
+                        class="px-2 py-1 font-bold text-white border-b border-slate-800 mb-1 flex items-center justify-between">
+                        <span>{% trans "Students (SIS)" %}</span>
+                        <span class="text-[9px] bg-blue-600 text-white px-1.5 py-0.5 rounded">Roster</span>
+                    </div>
+                    <a href="{% url 'student_list' %}"
+                        class="block px-2.5 py-1.5 rounded-lg text-slate-300 hover:bg-blue-600 hover:text-white">{%
+                        trans "Student Directory" %}</a>
+                    {% if is_admin %}
+                    <a href="{% url 'student_admission' %}"
+                        class="block px-2.5 py-1.5 rounded-lg text-slate-300 hover:bg-blue-600 hover:text-white">{%
+                        trans "New Admission Wizard" %}</a>
+                    <a href="{% url 'student_import_csv' %}"
+                        class="block px-2.5 py-1.5 rounded-lg text-slate-300 hover:bg-blue-600 hover:text-white">{%
+                        trans "Import CSV" %}</a>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- 3. CLASSES & ACADEMICS MODULE -->
+            {% if is_admin or is_teacher %}
+            <div class="relative group/nav" x-data="{ open: activeSubmenu === 'academics' }">
+                <button type="button" @click="activeSubmenu = activeSubmenu === 'academics' ? null : 'academics'"
+                    :class="activeSubmenu === 'academics' || ('academics' in request.path) ? 'bg-white/15 text-white font-bold' : 'text-blue-100 hover:bg-white/10 hover:text-white'"
+                    class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs transition-all">
+                    <div class="flex items-center gap-3 min-w-0">
+                        <div
+                            class="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 {% if 'academics' in request.path %} bg-white text-blue-900 {% else %} bg-white/10 text-blue-200 {% endif %}">
+                            <i data-lucide="layers" class="w-4 h-4"></i>
+                        </div>
+                        <span x-show="isExpanded()" x-cloak class="truncate font-semibold">{% trans "Academics"
+                            %}</span>
+                    </div>
+                    <i x-show="isExpanded()" x-cloak data-lucide="chevron-down"
+                        class="w-3.5 h-3.5 transition-transform duration-200 text-blue-300"
+                        :class="activeSubmenu === 'academics' ? 'rotate-180' : ''"></i>
+                </button>
+
+                <!-- Subnav Accordion -->
+                <div x-show="isExpanded() && activeSubmenu === 'academics'" x-cloak
+                    class="mt-1 ml-4 pl-4 border-l-2 border-blue-400/30 space-y-1 text-xs py-1">
+                    <a href="{% url 'class_list' %}"
+                        class="flex items-center gap-2 py-1.5 px-2.5 rounded-lg transition {% if 'classes' in request.path %} bg-white/20 text-white font-bold {% else %} text-blue-200 hover:text-white hover:bg-white/10 {% endif %}">
+                        <span class="w-1.5 h-1.5 rounded-full bg-blue-300"></span>
+                        <span>{% trans "Classes & Sections" %}</span>
+                    </a>
+                    <a href="{% url 'subject_list' %}"
+                        class="flex items-center gap-2 py-1.5 px-2.5 rounded-lg transition {% if 'subjects' in request.path %} bg-white/20 text-white font-bold {% else %} text-blue-200 hover:text-white hover:bg-white/10 {% endif %}">
+                        <span class="w-1.5 h-1.5 rounded-full bg-blue-300"></span>
+                        <span>{% trans "Subjects & Curriculum" %}</span>
+                    </a>
+                    <a href="{% url 'subject_assignments' %}"
+                        class="flex items-center gap-2 py-1.5 px-2.5 rounded-lg transition {% if 'assignments' in request.path %} bg-white/20 text-white font-bold {% else %} text-blue-200 hover:text-white hover:bg-white/10 {% endif %}">
+                        <span class="w-1.5 h-1.5 rounded-full bg-blue-300"></span>
+                        <span>{% trans "Teacher Assignments" %}</span>
+                    </a>
+                </div>
+
+                <!-- Flyout Popover -->
+                <div x-show="!isExpanded()" x-cloak
+                    class="absolute left-full top-0 ml-3 w-56 bg-slate-900 border border-blue-800/80 rounded-2xl p-2.5 shadow-2xl z-50 invisible group-hover/nav:visible opacity-0 group-hover/nav:opacity-100 translate-x-2 group-hover/nav:translate-x-0 transition-all duration-200 text-xs space-y-1">
+                    <div
+                        class="px-2 py-1 font-bold text-white border-b border-slate-800 mb-1 flex items-center justify-between">
+                        <span>{% trans "Academics" %}</span>
+                        <span class="text-[9px] bg-blue-600 text-white px-1.5 py-0.5 rounded">Courses</span>
+                    </div>
+                    <a href="{% url 'class_list' %}"
+                        class="block px-2.5 py-1.5 rounded-lg text-slate-300 hover:bg-blue-600 hover:text-white">{%
+                        trans "Classes & Sections" %}</a>
+                    <a href="{% url 'subject_list' %}"
+                        class="block px-2.5 py-1.5 rounded-lg text-slate-300 hover:bg-blue-600 hover:text-white">{%
+                        trans "Subjects & Curriculum" %}</a>
+                    <a href="{% url 'subject_assignments' %}"
+                        class="block px-2.5 py-1.5 rounded-lg text-slate-300 hover:bg-blue-600 hover:text-white">{%
+                        trans "Teacher Assignments" %}</a>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- 4. FACULTY & STAFF MODULE -->
+            {% if is_admin or is_accountant or is_teacher %}
+            <div class="relative group/nav" x-data="{ open: activeSubmenu === 'staff' }">
+                <button type="button" @click="activeSubmenu = activeSubmenu === 'staff' ? null : 'staff'"
+                    :class="activeSubmenu === 'staff' || ('staff' in request.path) ? 'bg-white/15 text-white font-bold' : 'text-blue-100 hover:bg-white/10 hover:text-white'"
+                    class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs transition-all">
+                    <div class="flex items-center gap-3 min-w-0">
+                        <div
+                            class="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 {% if 'staff' in request.path %} bg-white text-blue-900 {% else %} bg-white/10 text-blue-200 {% endif %}">
+                            <i data-lucide="briefcase" class="w-4 h-4"></i>
+                        </div>
+                        <span x-show="isExpanded()" x-cloak class="truncate font-semibold">{% trans "Faculty & Staff"
+                            %}</span>
+                    </div>
+                    <i x-show="isExpanded()" x-cloak data-lucide="chevron-down"
+                        class="w-3.5 h-3.5 transition-transform duration-200 text-blue-300"
+                        :class="activeSubmenu === 'staff' ? 'rotate-180' : ''"></i>
+                </button>
+
+                <!-- Subnav Accordion -->
+                <div x-show="isExpanded() && activeSubmenu === 'staff'" x-cloak
+                    class="mt-1 ml-4 pl-4 border-l-2 border-blue-400/30 space-y-1 text-xs py-1">
+                    {% if is_admin %}
+                    <a href="{% url 'staff_tracking_dashboard' %}"
+                        class="flex items-center gap-2 py-1.5 px-2.5 rounded-lg transition {% if 'tracking' in request.path %} bg-white/20 text-white font-bold {% else %} text-blue-200 hover:text-white hover:bg-white/10 {% endif %}">
+                        <span class="w-1.5 h-1.5 rounded-full bg-blue-300"></span>
+                        <span>{% trans "Staff Live Tracking" %}</span>
+                    </a>
+                    <a href="{% url 'staff_list' %}"
+                        class="flex items-center gap-2 py-1.5 px-2.5 rounded-lg transition {% if 'directory' in request.path %} bg-white/20 text-white font-bold {% else %} text-blue-200 hover:text-white hover:bg-white/10 {% endif %}">
+                        <span class="w-1.5 h-1.5 rounded-full bg-blue-300"></span>
+                        <span>{% trans "Staff Directory" %}</span>
+                    </a>
+                    <a href="{% url 'staff_create' %}"
+                        class="flex items-center gap-2 py-1.5 px-2.5 rounded-lg text-blue-200 hover:text-white hover:bg-white/10 transition">
+                        <span class="w-1.5 h-1.5 rounded-full bg-blue-300"></span>
+                        <span>{% trans "Register New Staff" %}</span>
+                    </a>
+                    {% endif %}
+                    {% if is_admin or is_accountant %}
+                    <a href="{% url 'staff_payroll_dashboard' %}"
+                        class="flex items-center gap-2 py-1.5 px-2.5 rounded-lg transition {% if 'payroll' in request.path %} bg-white/20 text-white font-bold {% else %} text-blue-200 hover:text-white hover:bg-white/10 {% endif %}">
+                        <span class="w-1.5 h-1.5 rounded-full bg-blue-300"></span>
+                        <span>{% trans "Staff Payroll & Salary" %}</span>
+                    </a>
+                    {% endif %}
+                    {% if is_teacher %}
+                    <a href="{% url 'staff_dashboard' %}"
+                        class="flex items-center gap-2 py-1.5 px-2.5 rounded-lg text-blue-200 hover:text-white hover:bg-white/10 transition">
+                        <span class="w-1.5 h-1.5 rounded-full bg-blue-300"></span>
+                        <span>{% trans "My Attendance & Slips" %}</span>
+                    </a>
+                    {% endif %}
+                </div>
+
+                <!-- Flyout Popover -->
+                <div x-show="!isExpanded()" x-cloak
+                    class="absolute left-full top-0 ml-3 w-56 bg-slate-900 border border-blue-800/80 rounded-2xl p-2.5 shadow-2xl z-50 invisible group-hover/nav:visible opacity-0 group-hover/nav:opacity-100 translate-x-2 group-hover/nav:translate-x-0 transition-all duration-200 text-xs space-y-1">
+                    <div
+                        class="px-2 py-1 font-bold text-white border-b border-slate-800 mb-1 flex items-center justify-between">
+                        <span>{% trans "Faculty & Staff" %}</span>
+                        <span class="text-[9px] bg-blue-600 text-white px-1.5 py-0.5 rounded">HR</span>
+                    </div>
+                    {% if is_admin %}
+                    <a href="{% url 'staff_tracking_dashboard' %}"
+                        class="block px-2.5 py-1.5 rounded-lg text-slate-300 hover:bg-blue-600 hover:text-white">{%
+                        trans "Staff Live Tracking" %}</a>
+                    <a href="{% url 'staff_list' %}"
+                        class="block px-2.5 py-1.5 rounded-lg text-slate-300 hover:bg-blue-600 hover:text-white">{%
+                        trans "Staff Directory" %}</a>
+                    {% endif %}
+                    {% if is_admin or is_accountant %}
+                    <a href="{% url 'staff_payroll_dashboard' %}"
+                        class="block px-2.5 py-1.5 rounded-lg text-slate-300 hover:bg-blue-600 hover:text-white">{%
+                        trans "Staff Payroll & Salary" %}</a>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- 5. FEE MANAGEMENT MODULE -->
+            {% if is_admin or is_accountant or is_student or is_parent %}
+            <div class="relative group/nav" x-data="{ open: activeSubmenu === 'fees' }">
+                <button type="button" @click="activeSubmenu = activeSubmenu === 'fees' ? null : 'fees'"
+                    :class="activeSubmenu === 'fees' || ('fees' in request.path) ? 'bg-white/15 text-white font-bold' : 'text-blue-100 hover:bg-white/10 hover:text-white'"
+                    class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs transition-all">
+                    <div class="flex items-center gap-3 min-w-0">
+                        <div
+                            class="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 {% if 'fees' in request.path %} bg-white text-blue-900 {% else %} bg-white/10 text-blue-200 {% endif %}">
+                            <i data-lucide="credit-card" class="w-4 h-4"></i>
+                        </div>
+                        <span x-show="isExpanded()" x-cloak class="truncate font-semibold">{% trans "Fee Management"
+                            %}</span>
+                    </div>
+                    <i x-show="isExpanded()" x-cloak data-lucide="chevron-down"
+                        class="w-3.5 h-3.5 transition-transform duration-200 text-blue-300"
+                        :class="activeSubmenu === 'fees' ? 'rotate-180' : ''"></i>
+                </button>
+
+                <!-- Subnav Accordion -->
+                <div x-show="isExpanded() && activeSubmenu === 'fees'" x-cloak
+                    class="mt-1 ml-4 pl-4 border-l-2 border-blue-400/30 space-y-1 text-xs py-1">
+                    {% if is_admin or is_accountant %}
+                    <a href="{% url 'fee_dashboard' %}"
+                        class="flex items-center gap-2 py-1.5 px-2.5 rounded-lg transition {% if 'fees/dashboard' in request.path %} bg-white/20 text-white font-bold {% else %} text-blue-200 hover:text-white hover:bg-white/10 {% endif %}">
+                        <span class="w-1.5 h-1.5 rounded-full bg-blue-300"></span>
+                        <span>{% trans "Fee Dashboard & Defaulters" %}</span>
+                    </a>
+                    <a href="{% url 'challan_list' %}"
+                        class="flex items-center gap-2 py-1.5 px-2.5 rounded-lg transition {% if 'challans' in request.path %} bg-white/20 text-white font-bold {% else %} text-blue-200 hover:text-white hover:bg-white/10 {% endif %}">
+                        <span class="w-1.5 h-1.5 rounded-full bg-blue-300"></span>
+                        <span>{% trans "Virtual Challans (QR)" %}</span>
+                    </a>
+                    <a href="{% url 'voucher_list' %}"
+                        class="flex items-center gap-2 py-1.5 px-2.5 rounded-lg transition {% if 'vouchers' in request.path and 'create' not in request.path %} bg-white/20 text-white font-bold {% else %} text-blue-200 hover:text-white hover:bg-white/10 {% endif %}">
+                        <span class="w-1.5 h-1.5 rounded-full bg-blue-300"></span>
+                        <span>{% trans "Fee Vouchers" %}</span>
+                    </a>
+                    <a href="{% url 'voucher_create' %}"
+                        class="flex items-center gap-2 py-1.5 px-2.5 rounded-lg text-blue-200 hover:text-white hover:bg-white/10 transition">
+                        <span class="w-1.5 h-1.5 rounded-full bg-blue-300"></span>
+                        <span>{% trans "Create Voucher" %}</span>
+                    </a>
+                    {% endif %}
+                    {% if is_student or is_parent %}
+                    <a href="{% url 'student_fee_portal' %}"
+                        class="flex items-center gap-2 py-1.5 px-2.5 rounded-lg text-blue-200 hover:text-white hover:bg-white/10 transition">
+                        <span class="w-1.5 h-1.5 rounded-full bg-blue-300"></span>
+                        <span>{% trans "My Fee Status" %}</span>
+                    </a>
+                    {% endif %}
+                </div>
+
+                <!-- Flyout Popover -->
+                <div x-show="!isExpanded()" x-cloak
+                    class="absolute left-full top-0 ml-3 w-56 bg-slate-900 border border-blue-800/80 rounded-2xl p-2.5 shadow-2xl z-50 invisible group-hover/nav:visible opacity-0 group-hover/nav:opacity-100 translate-x-2 group-hover/nav:translate-x-0 transition-all duration-200 text-xs space-y-1">
+                    <div
+                        class="px-2 py-1 font-bold text-white border-b border-slate-800 mb-1 flex items-center justify-between">
+                        <span>{% trans "Fee Management" %}</span>
+                        <span class="text-[9px] bg-blue-600 text-white px-1.5 py-0.5 rounded">Finance</span>
+                    </div>
+                    {% if is_admin or is_accountant %}
+                    <a href="{% url 'fee_dashboard' %}"
+                        class="block px-2.5 py-1.5 rounded-lg text-slate-300 hover:bg-blue-600 hover:text-white">{%
+                        trans "Fee Dashboard & Defaulters" %}</a>
+                    <a href="{% url 'challan_list' %}"
+                        class="block px-2.5 py-1.5 rounded-lg text-slate-300 hover:bg-blue-600 hover:text-white">{%
+                        trans "Virtual Challans (QR)" %}</a>
+                    <a href="{% url 'voucher_list' %}"
+                        class="block px-2.5 py-1.5 rounded-lg text-slate-300 hover:bg-blue-600 hover:text-white">{%
+                        trans "Fee Vouchers" %}</a>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- 6. REPORTS & ANALYTICS MODULE -->
+            {% if is_admin or is_accountant or is_teacher %}
+            <div class="relative group/nav" x-data="{ open: activeSubmenu === 'reports' }">
+                <button type="button" @click="activeSubmenu = activeSubmenu === 'reports' ? null : 'reports'"
+                    :class="activeSubmenu === 'reports' || ('reports' in request.path) ? 'bg-white/15 text-white font-bold' : 'text-blue-100 hover:bg-white/10 hover:text-white'"
+                    class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs transition-all">
+                    <div class="flex items-center gap-3 min-w-0">
+                        <div
+                            class="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 {% if 'reports' in request.path %} bg-white text-blue-900 {% else %} bg-white/10 text-blue-200 {% endif %}">
+                            <i data-lucide="bar-chart-3" class="w-4 h-4"></i>
+                        </div>
+                        <span x-show="isExpanded()" x-cloak class="truncate font-semibold">{% trans "Reports & Hub"
+                            %}</span>
+                    </div>
+                    <i x-show="isExpanded()" x-cloak data-lucide="chevron-down"
+                        class="w-3.5 h-3.5 transition-transform duration-200 text-blue-300"
+                        :class="activeSubmenu === 'reports' ? 'rotate-180' : ''"></i>
+                </button>
+
+                <!-- Subnav Accordion -->
+                <div x-show="isExpanded() && activeSubmenu === 'reports'" x-cloak
+                    class="mt-1 ml-4 pl-4 border-l-2 border-blue-400/30 space-y-1 text-xs py-1">
+                    <a href="{% url 'reports_hub' %}"
+                        class="flex items-center gap-2 py-1.5 px-2.5 rounded-lg transition {% if request.path == '/reports/' %} bg-white/20 text-white font-bold {% else %} text-blue-200 hover:text-white hover:bg-white/10 {% endif %}">
+                        <span class="w-1.5 h-1.5 rounded-full bg-blue-300"></span>
+                        <span>{% trans "Central Reports Hub" %}</span>
+                    </a>
+                    <a href="{% url 'staff_attendance_pdf' %}" target="_blank"
+                        class="flex items-center gap-2 py-1.5 px-2.5 rounded-lg text-blue-200 hover:text-white hover:bg-white/10 transition">
+                        <span class="w-1.5 h-1.5 rounded-full bg-blue-300"></span>
+                        <span>{% trans "Staff Attendance (PDF)" %}</span>
+                    </a>
+                    <a href="{% url 'staff_attendance_excel' %}"
+                        class="flex items-center gap-2 py-1.5 px-2.5 rounded-lg text-blue-200 hover:text-white hover:bg-white/10 transition">
+                        <span class="w-1.5 h-1.5 rounded-full bg-blue-300"></span>
+                        <span>{% trans "Staff Attendance (Excel)" %}</span>
+                    </a>
+                </div>
+
+                <!-- Flyout Popover -->
+                <div x-show="!isExpanded()" x-cloak
+                    class="absolute left-full top-0 ml-3 w-56 bg-slate-900 border border-blue-800/80 rounded-2xl p-2.5 shadow-2xl z-50 invisible group-hover/nav:visible opacity-0 group-hover/nav:opacity-100 translate-x-2 group-hover/nav:translate-x-0 transition-all duration-200 text-xs space-y-1">
+                    <div
+                        class="px-2 py-1 font-bold text-white border-b border-slate-800 mb-1 flex items-center justify-between">
+                        <span>{% trans "Reports & Hub" %}</span>
+                        <span class="text-[9px] bg-blue-600 text-white px-1.5 py-0.5 rounded">PDF/XLS</span>
+                    </div>
+                    <a href="{% url 'reports_hub' %}"
+                        class="block px-2.5 py-1.5 rounded-lg text-slate-300 hover:bg-blue-600 hover:text-white">{%
+                        trans "Central Reports Hub" %}</a>
+                    <a href="{% url 'staff_attendance_pdf' %}" target="_blank"
+                        class="block px-2.5 py-1.5 rounded-lg text-slate-300 hover:bg-blue-600 hover:text-white">{%
+                        trans "Staff Attendance (PDF)" %}</a>
+                    <a href="{% url 'staff_attendance_excel' %}"
+                        class="block px-2.5 py-1.5 rounded-lg text-slate-300 hover:bg-blue-600 hover:text-white">{%
+                        trans "Staff Attendance (Excel)" %}</a>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- 7. ADMINISTRATION & RBAC MODULE -->
+            {% if is_admin or is_super_admin %}
+            <div class="relative group/nav" x-data="{ open: activeSubmenu === 'admin' }">
+                <button type="button" @click="activeSubmenu = activeSubmenu === 'admin' ? null : 'admin'"
+                    :class="activeSubmenu === 'admin' || ('roles' in request.path) ? 'bg-white/15 text-white font-bold' : 'text-blue-100 hover:bg-white/10 hover:text-white'"
+                    class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs transition-all">
+                    <div class="flex items-center gap-3 min-w-0">
+                        <div
+                            class="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 {% if 'roles' in request.path %} bg-white text-blue-900 {% else %} bg-white/10 text-blue-200 {% endif %}">
+                            <i data-lucide="shield-check" class="w-4 h-4"></i>
+                        </div>
+                        <span x-show="isExpanded()" x-cloak class="truncate font-semibold">{% trans "Administration"
+                            %}</span>
+                    </div>
+                    <i x-show="isExpanded()" x-cloak data-lucide="chevron-down"
+                        class="w-3.5 h-3.5 transition-transform duration-200 text-blue-300"
+                        :class="activeSubmenu === 'admin' ? 'rotate-180' : ''"></i>
+                </button>
+
+                <!-- Subnav Accordion -->
+                <div x-show="isExpanded() && activeSubmenu === 'admin'" x-cloak
+                    class="mt-1 ml-4 pl-4 border-l-2 border-blue-400/30 space-y-1 text-xs py-1">
+                    <a href="{% url 'role_list' %}"
+                        class="flex items-center gap-2 py-1.5 px-2.5 rounded-lg transition {% if 'roles' in request.path and 'users' not in request.path %} bg-white/20 text-white font-bold {% else %} text-blue-200 hover:text-white hover:bg-white/10 {% endif %}">
+                        <span class="w-1.5 h-1.5 rounded-full bg-blue-300"></span>
+                        <span>{% trans "Roles & Permissions (RBAC)" %}</span>
+                    </a>
+                    <a href="{% url 'role_user_assignment' %}"
+                        class="flex items-center gap-2 py-1.5 px-2.5 rounded-lg transition {% if 'roles/users' in request.path %} bg-white/20 text-white font-bold {% else %} text-blue-200 hover:text-white hover:bg-white/10 {% endif %}">
+                        <span class="w-1.5 h-1.5 rounded-full bg-blue-300"></span>
+                        <span>{% trans "User Role Assignments" %}</span>
+                    </a>
+                </div>
+
+                <!-- Flyout Popover -->
+                <div x-show="!isExpanded()" x-cloak
+                    class="absolute left-full top-0 ml-3 w-56 bg-slate-900 border border-blue-800/80 rounded-2xl p-2.5 shadow-2xl z-50 invisible group-hover/nav:visible opacity-0 group-hover/nav:opacity-100 translate-x-2 group-hover/nav:translate-x-0 transition-all duration-200 text-xs space-y-1">
+                    <div
+                        class="px-2 py-1 font-bold text-white border-b border-slate-800 mb-1 flex items-center justify-between">
+                        <span>{% trans "Administration" %}</span>
+                        <span class="text-[9px] bg-purple-600 text-white px-1.5 py-0.5 rounded">RBAC</span>
+                    </div>
+                    <a href="{% url 'role_list' %}"
+                        class="block px-2.5 py-1.5 rounded-lg text-slate-300 hover:bg-blue-600 hover:text-white">{%
+                        trans "Roles & Permissions" %}</a>
+                    <a href="{% url 'role_user_assignment' %}"
+                        class="block px-2.5 py-1.5 rounded-lg text-slate-300 hover:bg-blue-600 hover:text-white">{%
+                        trans "User Role Assignments" %}</a>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- 8. SETTINGS & PROFILE -->
+            <div class="relative group/nav" x-data="{ open: activeSubmenu === 'settings' }">
+                <button type="button" @click="activeSubmenu = activeSubmenu === 'settings' ? null : 'settings'"
+                    :class="activeSubmenu === 'settings' || ('profile' in request.path) ? 'bg-white/15 text-white font-bold' : 'text-blue-100 hover:bg-white/10 hover:text-white'"
+                    class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs transition-all">
+                    <div class="flex items-center gap-3 min-w-0">
+                        <div
+                            class="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 {% if 'profile' in request.path %} bg-white text-blue-900 {% else %} bg-white/10 text-blue-200 {% endif %}">
+                            <i data-lucide="user-cog" class="w-4 h-4"></i>
+                        </div>
+                        <span x-show="isExpanded()" x-cloak class="truncate font-semibold">{% trans "Settings" %}</span>
+                    </div>
+                    <i x-show="isExpanded()" x-cloak data-lucide="chevron-down"
+                        class="w-3.5 h-3.5 transition-transform duration-200 text-blue-300"
+                        :class="activeSubmenu === 'settings' ? 'rotate-180' : ''"></i>
+                </button>
+
+                <!-- Subnav Accordion -->
+                <div x-show="isExpanded() && activeSubmenu === 'settings'" x-cloak
+                    class="mt-1 ml-4 pl-4 border-l-2 border-blue-400/30 space-y-1 text-xs py-1">
+                    <a href="{% url 'profile' %}"
+                        class="flex items-center gap-2 py-1.5 px-2.5 rounded-lg transition {% if 'profile' in request.path %} bg-white/20 text-white font-bold {% else %} text-blue-200 hover:text-white hover:bg-white/10 {% endif %}">
+                        <span class="w-1.5 h-1.5 rounded-full bg-blue-300"></span>
+                        <span>{% trans "My Profile" %}</span>
+                    </a>
+                    <a href="{% url 'change_password' %}"
+                        class="flex items-center gap-2 py-1.5 px-2.5 rounded-lg text-blue-200 hover:text-white hover:bg-white/10 transition">
+                        <span class="w-1.5 h-1.5 rounded-full bg-blue-300"></span>
+                        <span>{% trans "Change Password" %}</span>
+                    </a>
+                </div>
+
+                <!-- Flyout Popover -->
+                <div x-show="!isExpanded()" x-cloak
+                    class="absolute left-full top-0 ml-3 w-56 bg-slate-900 border border-blue-800/80 rounded-2xl p-2.5 shadow-2xl z-50 invisible group-hover/nav:visible opacity-0 group-hover/nav:opacity-100 translate-x-2 group-hover/nav:translate-x-0 transition-all duration-200 text-xs space-y-1">
+                    <div
+                        class="px-2 py-1 font-bold text-white border-b border-slate-800 mb-1 flex items-center justify-between">
+                        <span>{% trans "Settings" %}</span>
+                        <span class="text-[9px] bg-slate-700 text-white px-1.5 py-0.5 rounded">User</span>
+                    </div>
+                    <a href="{% url 'profile' %}"
+                        class="block px-2.5 py-1.5 rounded-lg text-slate-300 hover:bg-blue-600 hover:text-white">{%
+                        trans "My Profile" %}</a>
+                    <a href="{% url 'change_password' %}"
+                        class="block px-2.5 py-1.5 rounded-lg text-slate-300 hover:bg-blue-600 hover:text-white">{%
+                        trans "Change Password" %}</a>
+                </div>
+            </div>
+
+        </nav>
+
+        <!-- Sidebar Footer / Logout -->
+        <div class="p-3 border-t border-blue-800/80 bg-blue-950/50">
+            <a href="{% url 'logout' %}"
+                class="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-xs font-semibold text-rose-200 hover:bg-rose-500/20 hover:text-white transition-all">
+                <i data-lucide="log-out" class="w-4 h-4 shrink-0"></i>
+                <span x-show="isExpanded()" x-cloak class="truncate">{% trans "Sign Out" %}</span>
+            </a>
+        </div>
+    </aside>
+    {% endif %}
+
+    <!-- Main Content Area: Luminous White & Light Slate Canvas -->
+    <div class="flex-1 flex flex-col min-w-0 overflow-hidden bg-[#f8fafc]">
+        {% if user.is_authenticated %}
+        <!-- Top App Bar (Pristine White) with Quick Navigation & Robust Reports Dropdown -->
+        <header
+            class="glass-nav h-16 flex items-center justify-between px-4 sm:px-6 z-30 relative bg-white border-b border-slate-200 shadow-sm"
+            x-data="{ reportsDropdownOpen: false }">
+            <div class="flex items-center gap-3 sm:gap-6">
+                <!-- Page Title -->
+                <h2 class="text-base font-bold text-slate-900 tracking-tight hidden lg:block">
+                    {% block header_title %}Overview{% endblock %}
+                </h2>
+
+                <!-- Top Tabs Bar -->
+                <nav class="flex items-center gap-1 sm:gap-1.5">
+                    <a href="{% url 'dashboard_router' %}"
+                        class="px-2.5 py-1.5 rounded-xl text-xs font-semibold transition flex items-center gap-1.5 {% if request.path == '/' or '/dashboard/' in request.path and 'staff' not in request.path and 'fee' not in request.path %} bg-blue-50 text-blue-700 font-bold border border-blue-200 shadow-xs {% else %} text-slate-600 hover:text-slate-900 hover:bg-slate-100 {% endif %}">
+                        <i data-lucide="layout-dashboard" class="w-3.5 h-3.5 text-blue-600"></i>
+                        <span class="hidden sm:inline">Dashboard</span>
+                    </a>
+
+                    {% if is_admin or is_teacher %}
+                    <a href="{% url 'student_list' %}"
+                        class="px-2.5 py-1.5 rounded-xl text-xs font-semibold transition flex items-center gap-1.5 {% if 'student' in request.path and 'admission' not in request.path %} bg-blue-50 text-blue-700 font-bold border border-blue-200 shadow-xs {% else %} text-slate-600 hover:text-slate-900 hover:bg-slate-100 {% endif %}">
+                        <i data-lucide="users" class="w-3.5 h-3.5 text-blue-600"></i>
+                        <span class="hidden sm:inline">Students</span>
+                    </a>
+                    <a href="{% url 'class_list' %}"
+                        class="px-2.5 py-1.5 rounded-xl text-xs font-semibold transition flex items-center gap-1.5 {% if 'academics' in request.path %} bg-blue-50 text-blue-700 font-bold border border-blue-200 shadow-xs {% else %} text-slate-600 hover:text-slate-900 hover:bg-slate-100 {% endif %}">
+                        <i data-lucide="layers" class="w-3.5 h-3.5 text-blue-600"></i>
+                        <span class="hidden md:inline">Academics</span>
+                    </a>
+                    {% endif %}
+
+                    {% if is_admin or is_accountant %}
+                    <a href="{% url 'staff_payroll_dashboard' %}"
+                        class="px-2.5 py-1.5 rounded-xl text-xs font-semibold transition flex items-center gap-1.5 {% if 'staff/payroll' in request.path %} bg-blue-50 text-blue-700 font-bold border border-blue-200 shadow-xs {% else %} text-slate-600 hover:text-slate-900 hover:bg-slate-100 {% endif %}">
+                        <i data-lucide="wallet" class="w-3.5 h-3.5 text-blue-600"></i>
+                        <span class="hidden md:inline">Payroll</span>
+                    </a>
+                    {% endif %}
+
+                    {% if is_admin or is_super_admin %}
+                    <a href="{% url 'role_list' %}"
+                        class="px-2.5 py-1.5 rounded-xl text-xs font-semibold transition flex items-center gap-1.5 {% if 'roles' in request.path %} bg-blue-50 text-blue-700 font-bold border border-blue-200 shadow-xs {% else %} text-slate-600 hover:text-slate-900 hover:bg-slate-100 {% endif %}">
+                        <i data-lucide="shield-check" class="w-3.5 h-3.5 text-blue-600"></i>
+                        <span class="hidden lg:inline">Roles & RBAC</span>
+                    </a>
+                    {% endif %}
+
+                    <!-- TOP REPORTS TAB (Strictly Hidden by Default, Click or Hover to Toggle) -->
+                    <div class="relative" @click.away="reportsDropdownOpen = false">
+                        <button type="button" @click="reportsDropdownOpen = !reportsDropdownOpen"
+                            class="px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 {% if 'reports' in request.path %} bg-blue-600 text-white shadow-sm ring-2 ring-blue-600/20 {% else %} bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200/80 {% endif %}">
+                            <i data-lucide="bar-chart-3"
+                                class="w-3.5 h-3.5 {% if 'reports' in request.path %} text-white {% else %} text-blue-600 {% endif %}"></i>
+                            <span>Reports</span>
+                            <i data-lucide="chevron-down" class="w-3 h-3 transition-transform duration-200"
+                                :class="reportsDropdownOpen ? 'rotate-180' : ''"></i>
+                        </button>
+
+                        <!-- Reports Dropdown Menu (Guaranteed display: none on load via style and x-cloak) -->
+                        <div x-show="reportsDropdownOpen" x-cloak style="display: none;"
+                            x-transition:enter="transition ease-out duration-150"
+                            x-transition:enter-start="opacity-0 scale-95 -translate-y-1"
+                            x-transition:enter-end="opacity-100 scale-100 translate-y-0"
+                            x-transition:leave="transition ease-in duration-100"
+                            x-transition:leave-start="opacity-100 scale-100 translate-y-0"
+                            x-transition:leave-end="opacity-0 scale-95 -translate-y-1"
+                            class="absolute left-0 mt-2 w-80 bg-white rounded-2xl shadow-xl border border-slate-200 p-2 z-50 text-xs divide-y divide-slate-100">
+
+                            <!-- Hub Link Banner -->
+                            <div class="p-1 pb-2">
+                                <a href="{% url 'reports_hub' %}"
+                                    class="flex items-center justify-between p-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-700 text-white font-bold shadow-sm transition hover:opacity-95">
+                                    <span class="flex items-center gap-2">
+                                        <i data-lucide="layout-grid" class="w-4 h-4 text-white"></i>
+                                        <span>All Reports Hub</span>
+                                    </span>
+                                    <span class="text-[10px] bg-white/20 px-2 py-0.5 rounded-full">Open →</span>
+                                </a>
+                            </div>
+
+                            <!-- Quick Report Links -->
+                            <div class="py-2 space-y-0.5">
+                                <div class="px-2.5 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                                    Staff & Attendance</div>
+                                <a href="{% url 'staff_attendance_pdf' %}" target="_blank"
+                                    class="flex items-center justify-between px-2.5 py-1.5 rounded-xl hover:bg-slate-50 text-slate-700 transition">
+                                    <span class="flex items-center gap-2">
+                                        <i data-lucide="file-text" class="w-3.5 h-3.5 text-rose-500"></i>
+                                        <span>Staff Attendance Sheet</span>
+                                    </span>
+                                    <span
+                                        class="text-[10px] font-semibold text-rose-600 bg-rose-50 px-1.5 py-0.5 rounded">PDF</span>
+                                </a>
+                                <a href="{% url 'staff_attendance_excel' %}"
+                                    class="flex items-center justify-between px-2.5 py-1.5 rounded-xl hover:bg-slate-50 text-slate-700 transition">
+                                    <span class="flex items-center gap-2">
+                                        <i data-lucide="sheet" class="w-3.5 h-3.5 text-emerald-600"></i>
+                                        <span>Staff Attendance Sheet</span>
+                                    </span>
+                                    <span
+                                        class="text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded">Excel</span>
+                                </a>
+                                <a href="{% url 'staff_payroll_dashboard' %}"
+                                    class="flex items-center justify-between px-2.5 py-1.5 rounded-xl hover:bg-slate-50 text-slate-700 transition">
+                                    <span class="flex items-center gap-2">
+                                        <i data-lucide="wallet" class="w-3.5 h-3.5 text-blue-600"></i>
+                                        <span>Staff Payroll & Salary Slips</span>
+                                    </span>
+                                    <span
+                                        class="text-[10px] font-semibold text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded">Register</span>
+                                </a>
+                            </div>
+
+                            <div class="py-2 space-y-0.5">
+                                <div class="px-2.5 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                                    Academics & Students</div>
+                                <a href="{% url 'class_list' %}"
+                                    class="flex items-center justify-between px-2.5 py-1.5 rounded-xl hover:bg-slate-50 text-slate-700 transition">
+                                    <span class="flex items-center gap-2">
+                                        <i data-lucide="layers" class="w-3.5 h-3.5 text-indigo-600"></i>
+                                        <span>Class Rosters & Capacity</span>
+                                    </span>
+                                    <span class="text-[10px] text-slate-400">PDF/XLS</span>
+                                </a>
+                                <a href="{% url 'student_list' %}"
+                                    class="flex items-center justify-between px-2.5 py-1.5 rounded-xl hover:bg-slate-50 text-slate-700 transition">
+                                    <span class="flex items-center gap-2">
+                                        <i data-lucide="graduation-cap" class="w-3.5 h-3.5 text-emerald-600"></i>
+                                        <span>Student Master Directory</span>
+                                    </span>
+                                    <span class="text-[10px] text-slate-400">SIS</span>
+                                </a>
+                            </div>
+
+                            <div class="pt-2 space-y-0.5">
+                                <div class="px-2.5 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                                    Financial & Fees</div>
+                                <a href="{% url 'fee_dashboard' %}"
+                                    class="flex items-center justify-between px-2.5 py-1.5 rounded-xl hover:bg-slate-50 text-slate-700 transition">
+                                    <span class="flex items-center gap-2">
+                                        <i data-lucide="pie-chart" class="w-3.5 h-3.5 text-amber-500"></i>
+                                        <span>Fee Defaulters & Collections</span>
+                                    </span>
+                                    <span class="text-[10px] text-slate-400">Ledger</span>
+                                </a>
+                                <a href="{% url 'challan_list' %}"
+                                    class="flex items-center justify-between px-2.5 py-1.5 rounded-xl hover:bg-slate-50 text-slate-700 transition">
+                                    <span class="flex items-center gap-2">
+                                        <i data-lucide="credit-card" class="w-3.5 h-3.5 text-teal-600"></i>
+                                        <span>Virtual Fee Challans</span>
+                                    </span>
+                                    <span class="text-[10px] text-slate-400">QR Code</span>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </nav>
+            </div>
+
+            <div class="flex items-center gap-3 sm:gap-4 shrink-0">
+                <!-- Notifications button -->
+                <button
+                    class="relative p-2 rounded-xl bg-slate-50 text-slate-600 hover:text-blue-600 hover:bg-blue-50 border border-slate-200 transition">
+                    <i data-lucide="bell" class="w-4 h-4"></i>
+                    <span class="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-blue-600 ring-2 ring-white"></span>
+                </button>
+
+                <!-- User Profile Card -->
+                <div class="flex items-center gap-3 pl-3 border-l border-slate-200">
+                    <div
+                        class="w-9 h-9 rounded-xl bg-blue-600 text-white font-bold flex items-center justify-center text-xs shadow-sm overflow-hidden">
+                        {% if user.profile_picture %}
+                        <img src="{{ user.profile_picture.url }}" class="w-full h-full object-cover" alt="Profile">
+                        {% else %}
+                        {{ user.first_name|default:user.username|slice:":1"|upper }}
+                        {% endif %}
+                    </div>
+                    <div class="hidden sm:block text-left">
+                        <p class="text-xs font-bold text-slate-800 leading-tight">{{
+                            user.get_full_name|default:user.username }}</p>
+                        <p class="text-[11px] text-slate-500 leading-tight">{{ user.email|default:"Active Account" }}
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </header>
+        {% endif %}
+
+        <!-- Alert Notification System for Authenticated Users -->
+        {% if user.is_authenticated and messages %}
+        <div class="px-6 pt-4">
+            {% for message in messages %}
+            <div class="mb-3 p-4 rounded-xl text-xs sm:text-sm flex items-center justify-between border shadow-sm transition-all
+                {% if message.tags == 'error' %} bg-rose-50 border-rose-200 text-rose-700
+                {% elif message.tags == 'success' %} bg-emerald-50 border-emerald-200 text-emerald-800
+                {% else %} bg-blue-50 border-blue-200 text-blue-800 {% endif %}">
+                <div class="flex items-center gap-3">
+                    <i data-lucide="{% if message.tags == 'error' %}alert-circle{% else %}check-circle-2{% endif %}"
+                        class="w-5 h-5 flex-shrink-0 text-current"></i>
+                    <span class="font-medium">{{ message }}</span>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Page Body Content -->
+        <main
+            class="flex-1 overflow-y-auto {% if user.is_authenticated %}p-6 space-y-6 pb-20 md:pb-6{% else %}p-0{% endif %}">
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+
+    <!-- Mobile-First Bottom Navigation Bar (Visible on Mobile Only) -->
+    {% if user.is_authenticated %}
+    <nav
+        class="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 z-50 flex items-center justify-around py-2 shadow-lg">
+        <a href="{% url 'dashboard_router' %}"
+            class="flex flex-col items-center gap-1 text-[11px] font-semibold {% if 'dashboard' in request.path %}text-blue-700{% else %}text-slate-500 hover:text-blue-600{% endif %}">
+            <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
+            <span>Home</span>
+        </a>
+        {% if is_admin %}
+        <a href="{% url 'student_list' %}"
+            class="flex flex-col items-center gap-1 text-[11px] font-semibold {% if 'student' in request.path %}text-blue-700{% else %}text-slate-500 hover:text-blue-600{% endif %}">
+            <i data-lucide="users" class="w-5 h-5"></i>
+            <span>Students</span>
+        </a>
+        <a href="{% url 'staff_tracking_dashboard' %}"
+            class="flex flex-col items-center gap-1 text-[11px] font-semibold {% if 'staff' in request.path %}text-blue-700{% else %}text-slate-500 hover:text-blue-600{% endif %}">
+            <i data-lucide="map-pin" class="w-5 h-5"></i>
+            <span>Tracking</span>
+        </a>
+        <a href="{% url 'challan_list' %}"
+            class="flex flex-col items-center gap-1 text-[11px] font-semibold {% if 'fees' in request.path %}text-blue-700{% else %}text-slate-500 hover:text-blue-600{% endif %}">
+            <i data-lucide="credit-card" class="w-5 h-5"></i>
+            <span>Fees</span>
+        </a>
+        {% elif is_teacher %}
+        <a href="{% url 'staff_dashboard' %}"
+            class="flex flex-col items-center gap-1 text-[11px] font-semibold {% if 'staff/dashboard' in request.path %}text-blue-700{% else %}text-slate-500 hover:text-blue-600{% endif %}">
+            <i data-lucide="check-square" class="w-5 h-5"></i>
+            <span>Check-in</span>
+        </a>
+        <a href="{% url 'student_list' %}"
+            class="flex flex-col items-center gap-1 text-[11px] font-semibold {% if 'student' in request.path %}text-blue-700{% else %}text-slate-500 hover:text-blue-600{% endif %}">
+            <i data-lucide="users" class="w-5 h-5"></i>
+            <span>Students</span>
+        </a>
+        {% elif user.is_student or user.is_parent %}
+        <a href="{% url 'profile' %}"
+            class="flex flex-col items-center gap-1 text-[11px] font-semibold {% if 'profile' in request.path %}text-blue-700{% else %}text-slate-500 hover:text-blue-600{% endif %}">
+            <i data-lucide="user" class="w-5 h-5"></i>
+            <span>Profile</span>
+        </a>
+        {% endif %}
+        <a href="{% url 'profile' %}"
+            class="flex flex-col items-center gap-1 text-[11px] font-semibold {% if 'profile' in request.path %}text-blue-700{% else %}text-slate-500 hover:text-blue-600{% endif %}">
+            <i data-lucide="settings" class="w-5 h-5"></i>
+            <span>Settings</span>
+        </a>
+    </nav>
+    {% endif %}
+
+    <!-- PWA Service Worker Registration -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/static/sw.js').catch(err => {
+                    console.log('SW registration error:', err);
+                });
+            });
+        }
+    </script>
+
+    <!-- Initialize Lucide Icons -->
+    <script>
+        lucide.createIcons();
+    </script>
+    {% block extra_js %}{% endblock %}
+</body>
+
+</html>

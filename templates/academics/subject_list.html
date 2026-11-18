@@ -1,0 +1,477 @@
+﻿{% extends 'base.html' %}
+
+{% block title %}Subjects & Curriculum Management — School Management System{% endblock %}
+{% block header_title %}Official Subject Directory & Curriculum PDF Management{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header with Action Buttons -->
+    <div class="glass-card p-6 rounded-2xl border border-slate-800 flex flex-wrap items-center justify-between gap-4">
+        <div>
+            <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                <i data-lucide="book-open" class="w-5 h-5 text-emerald-400"></i> Course Subjects & Curriculum Portal
+            </h3>
+            <p class="text-xs text-slate-400">Upload official curriculum PDFs, manage individual subjects, and assign subject teachers per class.</p>
+        </div>
+        <div class="flex flex-wrap items-center gap-3">
+            <button onclick="document.getElementById('modal-pdf-upload').classList.remove('hidden')" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold flex items-center gap-2 transition shadow-lg shadow-emerald-600/20">
+                <i data-lucide="file-up" class="w-4 h-4"></i> Upload Subject PDF
+            </button>
+            <button onclick="openCreateSubjectModal()" class="px-4 py-2 bg-[#009688] hover:bg-[#009688]/80 text-white rounded-xl text-xs font-bold flex items-center gap-2 transition shadow-lg shadow-[#009688]/20">
+                <i data-lucide="plus" class="w-4 h-4"></i> Add New Subject
+            </button>
+        </div>
+    </div>
+
+    <!-- Official Curriculum PDF Section -->
+    <div class="glass-card p-6 rounded-2xl border border-[#009688]/40 bg-slate-900/60 space-y-4">
+        <div class="flex flex-wrap items-center justify-between gap-4 border-b border-slate-800 pb-3">
+            <div>
+                <h4 class="text-sm font-bold text-white flex items-center gap-2">
+                    <i data-lucide="file-text" class="w-4 h-4 text-emerald-400"></i> Official School Curriculum & Syllabus Document
+                </h4>
+                <p class="text-xs text-slate-400 mt-0.5">Primary PDF reference document for school administration, teachers, and students.</p>
+            </div>
+            {% if active_pdf %}
+            <div class="flex items-center gap-2">
+                <a href="{{ active_pdf.pdf_file.url }}" target="_blank" class="px-3 py-1.5 bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 border border-blue-500/40 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition">
+                    <i data-lucide="external-link" class="w-3.5 h-3.5"></i> View PDF
+                </a>
+                <a href="{{ active_pdf.pdf_file.url }}" download class="px-3 py-1.5 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/40 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition">
+                    <i data-lucide="download" class="w-3.5 h-3.5"></i> Download PDF
+                </a>
+                <button onclick="document.getElementById('modal-pdf-upload').classList.remove('hidden')" class="px-3 py-1.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition">
+                    <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> Replace PDF
+                </button>
+                <form action="{% url 'curriculum_pdf_delete' active_pdf.id %}" method="POST" class="inline" onsubmit="return confirm('Are you sure you want to delete the active Curriculum PDF?');">
+                    {% csrf_token %}
+                    <button type="submit" class="px-2.5 py-1.5 bg-slate-900 hover:bg-rose-950/50 text-slate-400 hover:text-rose-400 border border-slate-800 rounded-xl text-xs font-semibold transition">
+                        <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                    </button>
+                </form>
+            </div>
+            {% endif %}
+        </div>
+
+        {% if active_pdf %}
+        <div class="p-4 bg-slate-950/70 rounded-xl border border-slate-800 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 text-xs">
+            <div>
+                <span class="text-slate-500 block text-[10px] uppercase font-semibold">Document Title</span>
+                <span class="text-white font-bold text-sm block mt-0.5">{{ active_pdf.title }}</span>
+            </div>
+            <div>
+                <span class="text-slate-500 block text-[10px] uppercase font-semibold">Uploaded Date</span>
+                <span class="text-slate-300 font-mono block mt-0.5">{{ active_pdf.uploaded_at|date:"d-M-Y H:i" }}</span>
+            </div>
+            <div>
+                <span class="text-slate-500 block text-[10px] uppercase font-semibold">Uploaded By</span>
+                <span class="text-emerald-400 font-semibold block mt-0.5">{% if active_pdf.uploaded_by %}{{ active_pdf.uploaded_by.get_full_name|default:active_pdf.uploaded_by.username }}{% else %}Admin{% endif %}</span>
+            </div>
+            <div>
+                <span class="text-slate-500 block text-[10px] uppercase font-semibold">File Size & Status</span>
+                <div class="flex items-center gap-2 mt-0.5">
+                    <span class="text-slate-300 font-mono">{{ active_pdf.file_size|filesizeformat }}</span>
+                    <span class="px-2 py-0.5 bg-[#9ece38]/15 text-[#9ece38] border border-[#9ece38]/30 rounded-full text-[10px] font-bold">Active Syllabus</span>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="p-6 bg-slate-950/40 rounded-xl border border-dashed border-slate-800 text-center space-y-2">
+            <i data-lucide="file-up" class="w-8 h-8 text-slate-500 mx-auto"></i>
+            <p class="text-xs text-slate-300 font-medium">No official Curriculum PDF uploaded yet.</p>
+            <button onclick="document.getElementById('modal-pdf-upload').classList.remove('hidden')" class="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold inline-flex items-center gap-1.5">
+                <i data-lucide="upload" class="w-3.5 h-3.5"></i> Upload PDF Now
+            </button>
+        </div>
+        {% endif %}
+
+        <!-- PDF History Accordion -->
+        {% if pdf_history %}
+        <div class="pt-2">
+            <details class="group text-xs">
+                <summary class="cursor-pointer font-bold text-slate-400 hover:text-white flex items-center gap-2 select-none">
+                    <i data-lucide="history" class="w-4 h-4 text-purple-400"></i> View Previous Curriculum PDF Versions ({{ pdf_history.count }})
+                </summary>
+                <div class="mt-3 space-y-2 pl-2">
+                    {% for h in pdf_history %}
+                    <div class="p-3 bg-slate-950/80 rounded-xl border border-slate-800 flex items-center justify-between text-xs">
+                        <div>
+                            <span class="text-white font-semibold block">{{ h.title }}</span>
+                            <span class="text-slate-500 text-[10px] block">Uploaded: {{ h.uploaded_at|date:"d-M-Y" }} by {{ h.uploaded_by.get_full_name|default:h.uploaded_by.username|default:"Admin" }}</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <a href="{{ h.pdf_file.url }}" target="_blank" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-[11px] font-semibold">View</a>
+                            <a href="{{ h.pdf_file.url }}" download class="px-2.5 py-1 bg-emerald-950/40 text-emerald-300 border border-emerald-800/40 rounded-lg text-[11px] font-semibold">Download</a>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </details>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Subject Directory & Table Section -->
+    <div class="glass-card p-6 rounded-2xl border border-slate-800 space-y-4">
+        <!-- Search & Filter Bar -->
+        <form method="GET" class="grid grid-cols-1 sm:grid-cols-3 md:grid-cols-4 gap-3 text-xs">
+            <div>
+                <input type="text" name="q" value="{{ search_query }}" placeholder="Search subject name or code..." class="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-white focus:ring-2 focus:ring-[#009688]">
+            </div>
+            <div>
+                <select name="class_id" onchange="this.form.submit()" class="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-white focus:ring-2 focus:ring-[#009688]">
+                    <option value="">-- All Classes --</option>
+                    {% for c in classes %}
+                        <option value="{{ c.id }}" {% if selected_class == c.id|stringformat:"s" %}selected{% endif %}>{{ c.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <select name="status" onchange="this.form.submit()" class="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-white focus:ring-2 focus:ring-[#009688]">
+                    <option value="">-- All Statuses --</option>
+                    <option value="active" {% if selected_status == 'active' %}selected{% endif %}>Active</option>
+                    <option value="inactive" {% if selected_status == 'inactive' %}selected{% endif %}>Inactive</option>
+                </select>
+            </div>
+            <div class="flex items-center gap-2">
+                <button type="submit" class="w-full py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-bold border border-slate-700 transition">
+                    Filter
+                </button>
+                {% if search_query or selected_class or selected_status %}
+                <a href="{% url 'subject_list' %}" class="px-3 py-2 bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 border border-rose-500/30 rounded-xl font-semibold">
+                    Clear
+                </a>
+                {% endif %}
+            </div>
+        </form>
+
+        <!-- Subjects Table -->
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs text-slate-300">
+                <thead class="bg-slate-950/80 text-slate-400 uppercase tracking-wider font-semibold border-b border-slate-800">
+                    <tr>
+                        <th class="px-4 py-3">Subject Name</th>
+                        <th class="px-4 py-3">Code</th>
+                        <th class="px-4 py-3">Class</th>
+                        <th class="px-4 py-3">Section</th>
+                        <th class="px-4 py-3">Assigned Teacher</th>
+                        <th class="px-4 py-3">Type</th>
+                        <th class="px-4 py-3">Status</th>
+                        <th class="px-4 py-3 text-right">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-800/60">
+                    {% for s in subjects %}
+                    <tr class="hover:bg-slate-800/40 transition {% if not s.is_active %}opacity-60 bg-slate-950/30{% endif %}">
+                        <td class="px-4 py-3.5 font-bold text-white flex items-center gap-2">
+                            <i data-lucide="book" class="w-4 h-4 text-emerald-400"></i> {{ s.name }}
+                        </td>
+                        <td class="px-4 py-3.5 font-mono text-blue-400 font-bold">{{ s.code }}</td>
+                        <td class="px-4 py-3.5 font-semibold text-slate-200">{{ s.class_level.name }}</td>
+                        <td class="px-4 py-3.5 text-slate-400">{{ s.section.name|default:"All Sections" }}</td>
+                        <td class="px-4 py-3.5">
+                            {% if s.assigned_teacher %}
+                                <span class="text-purple-300 font-medium bg-purple-500/10 px-2 py-0.5 rounded-full border border-purple-500/20">
+                                    {{ s.assigned_teacher.get_full_name|default:s.assigned_teacher.username }}
+                                </span>
+                            {% else %}
+                                <span class="text-slate-500 italic text-[11px]">Unassigned</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-3.5">
+                            {% if s.is_elective %}
+                                <span class="px-2 py-0.5 text-[10px] font-bold rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20">Elective</span>
+                            {% else %}
+                                <span class="px-2 py-0.5 text-[10px] font-bold rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">Compulsory</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-3.5">
+                            {% if s.is_active %}
+                                <span class="px-2 py-0.5 bg-[#9ece38]/15 text-[#9ece38] border border-[#9ece38]/30 rounded-full text-[10px] font-bold">Active</span>
+                            {% else %}
+                                <span class="px-2 py-0.5 bg-rose-500/15 text-rose-400 border border-rose-500/30 rounded-full text-[10px] font-bold">Inactive</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-3.5 text-right space-x-1">
+                            <!-- View Detail -->
+                            <button onclick="openViewSubjectModal('{{ s.name|escapejs }}', '{{ s.code|escapejs }}', '{{ s.class_level.name|escapejs }}', '{{ s.section.name|default:"All Sections"|escapejs }}', '{% if s.assigned_teacher %}{{ s.assigned_teacher.get_full_name|default:s.assigned_teacher.username }}{% else %}Unassigned{% endif %}', '{{ s.is_elective }}', '{{ s.is_active }}')" class="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg font-semibold text-[11px]" title="View Details">
+                                View
+                            </button>
+
+                            <!-- Edit -->
+                            <button onclick="openEditSubjectModal('{{ s.id }}', '{{ s.name|escapejs }}', '{{ s.code|escapejs }}', '{{ s.class_level.id }}', '{{ s.section.id|default:"" }}', '{{ s.assigned_teacher.id|default:"" }}', '{{ s.is_elective }}', '{{ s.is_active }}')" class="px-2 py-1 bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 border border-blue-500/40 rounded-lg font-semibold text-[11px]" title="Edit Subject">
+                                Edit
+                            </button>
+
+                            <!-- Assign Teacher -->
+                            <button onclick="openAssignTeacherModal('{{ s.id }}', '{{ s.name|escapejs }}', '{{ s.assigned_teacher.id|default:"" }}')" class="px-2 py-1 bg-purple-600/20 hover:bg-purple-600/30 text-purple-300 border border-purple-500/40 rounded-lg font-semibold text-[11px]" title="Assign Teacher">
+                                Assign
+                            </button>
+
+                            <!-- Toggle Status -->
+                            <form action="{% url 'subject_toggle_status' s.id %}" method="POST" class="inline">
+                                {% csrf_token %}
+                                <button type="submit" class="px-2 py-1 rounded-lg font-semibold text-[11px] border transition {% if s.is_active %} bg-rose-500/10 text-rose-400 border-rose-500/30 {% else %} bg-[#9ece38]/10 text-[#9ece38] border-[#9ece38]/30 {% endif %}">
+                                    {% if s.is_active %}Deactivate{% else %}Activate{% endif %}
+                                </button>
+                            </form>
+
+                            <!-- Delete -->
+                            <form action="{% url 'subject_delete' s.id %}" method="POST" class="inline" onsubmit="return confirm('Are you sure you want to delete subject {{ s.name }}?');">
+                                {% csrf_token %}
+                                <button type="submit" class="px-2 py-1 bg-slate-900 hover:bg-rose-950/50 text-slate-400 hover:text-rose-400 border border-slate-800 rounded-lg font-semibold text-[11px]">
+                                    Delete
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="text-center py-8 text-slate-500 italic">
+                            No course subjects found matching your filters.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal 1: Upload Subject PDF -->
+<div id="modal-pdf-upload" class="hidden fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="glass-card max-w-md w-full p-6 rounded-2xl border border-slate-800 space-y-4">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+            <h4 class="text-base font-bold text-white flex items-center gap-2">
+                <i data-lucide="file-up" class="w-4 h-4 text-emerald-400"></i> Upload Official Curriculum PDF
+            </h4>
+            <button type="button" onclick="document.getElementById('modal-pdf-upload').classList.add('hidden')" class="text-slate-400 hover:text-white">
+                <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+        </div>
+        <form action="{% url 'curriculum_pdf_upload' %}" method="POST" enctype="multipart/form-data" class="space-y-4 text-xs">
+            {% csrf_token %}
+            <div>
+                <label class="block text-slate-300 font-medium mb-1">Document Title *</label>
+                {{ pdf_form.title }}
+            </div>
+            <div>
+                <label class="block text-slate-300 font-medium mb-1">Select PDF File (.pdf, max 20MB) *</label>
+                {{ pdf_form.pdf_file }}
+            </div>
+            <div>
+                <label class="block text-slate-300 font-medium mb-1">Version Notes / Revision Summary</label>
+                {{ pdf_form.version_notes }}
+            </div>
+            <p class="text-[11px] text-amber-400 bg-amber-500/10 p-2.5 rounded-xl border border-amber-500/20">
+                <i data-lucide="info" class="w-3.5 h-3.5 inline mr-1"></i> Uploading a new PDF will automatically archive the previous active document while maintaining version history.
+            </p>
+            <div class="flex justify-end gap-2 pt-2">
+                <button type="button" onclick="document.getElementById('modal-pdf-upload').classList.add('hidden')" class="px-4 py-2 bg-slate-800 text-slate-300 rounded-xl font-medium">Cancel</button>
+                <button type="submit" class="px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl shadow-lg shadow-emerald-600/20">Upload PDF</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal 2: Create / Edit Subject -->
+<div id="modal-subject-form" class="hidden fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="glass-card max-w-lg w-full p-6 rounded-2xl border border-slate-800 space-y-4">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+            <h4 class="text-base font-bold text-white flex items-center gap-2" id="subject-modal-title">
+                <i data-lucide="book-open" class="w-4 h-4 text-emerald-400"></i> Add New Subject
+            </h4>
+            <button type="button" onclick="document.getElementById('modal-subject-form').classList.add('hidden')" class="text-slate-400 hover:text-white">
+                <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+        </div>
+        <form action="{% url 'subject_save' %}" method="POST" class="space-y-4 text-xs">
+            {% csrf_token %}
+            <input type="hidden" name="subject_id" id="subject-form-id">
+
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-slate-300 font-medium mb-1">Subject Name *</label>
+                    <input type="text" name="name" id="subject-form-name" required placeholder="e.g. Mathematics" class="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-white focus:ring-2 focus:ring-[#009688]">
+                </div>
+                <div>
+                    <label class="block text-slate-300 font-medium mb-1">Subject Code *</label>
+                    <input type="text" name="code" id="subject-form-code" required placeholder="e.g. MATH-10" class="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-white focus:ring-2 focus:ring-[#009688]">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-slate-300 font-medium mb-1">Class Level *</label>
+                    <select name="class_level" id="subject-form-class" required class="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-white focus:ring-2 focus:ring-[#009688]">
+                        {% for c in classes %}
+                            <option value="{{ c.id }}">{{ c.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-slate-300 font-medium mb-1">Section (Optional)</label>
+                    <select name="section" id="subject-form-section" class="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-white focus:ring-2 focus:ring-[#009688]">
+                        <option value="">-- All Sections --</option>
+                        {% for sec in sections %}
+                            <option value="{{ sec.id }}">{{ sec.class_level.name }} - {{ sec.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-slate-300 font-medium mb-1">Assigned Teacher</label>
+                <select name="assigned_teacher" id="subject-form-teacher" class="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-white focus:ring-2 focus:ring-[#009688]">
+                    <option value="">-- Unassigned --</option>
+                    {% for t in teachers %}
+                        <option value="{{ t.id }}">{{ t.get_full_name|default:t.username }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="flex items-center gap-6 pt-1">
+                <label class="flex items-center gap-2 text-slate-300 cursor-pointer">
+                    <input type="checkbox" name="is_elective" id="subject-form-elective" class="rounded bg-slate-950 border-slate-700 text-[#009688]">
+                    <span>Is Elective Subject?</span>
+                </label>
+                <label class="flex items-center gap-2 text-slate-300 cursor-pointer">
+                    <input type="checkbox" name="is_active" id="subject-form-active" checked class="rounded bg-slate-950 border-slate-700 text-[#009688]">
+                    <span>Is Active?</span>
+                </label>
+            </div>
+
+            <div class="flex justify-end gap-2 pt-2 border-t border-slate-800">
+                <button type="button" onclick="document.getElementById('modal-subject-form').classList.add('hidden')" class="px-4 py-2 bg-slate-800 text-slate-300 rounded-xl font-medium">Cancel</button>
+                <button type="submit" class="px-5 py-2 bg-[#009688] hover:bg-[#009688]/80 text-white font-bold rounded-xl shadow-lg shadow-[#009688]/20">Save Subject</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal 3: Assign Teacher -->
+<div id="modal-assign-teacher" class="hidden fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="glass-card max-w-md w-full p-6 rounded-2xl border border-slate-800 space-y-4">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+            <h4 class="text-base font-bold text-white flex items-center gap-2">
+                <i data-lucide="user-check" class="w-4 h-4 text-purple-400"></i> Assign Subject Teacher
+            </h4>
+            <button type="button" onclick="document.getElementById('modal-assign-teacher').classList.add('hidden')" class="text-slate-400 hover:text-white">
+                <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+        </div>
+        <form id="assign-teacher-form" method="POST" class="space-y-4 text-xs">
+            {% csrf_token %}
+            <div>
+                <span class="text-slate-400 block mb-1">Target Subject:</span>
+                <span id="assign-subject-name" class="text-white font-bold text-sm block"></span>
+            </div>
+            <div>
+                <label class="block text-slate-300 font-medium mb-1">Select Teacher *</label>
+                <select name="teacher_id" id="assign-teacher-select" class="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-white focus:ring-2 focus:ring-purple-500">
+                    <option value="">-- Unassigned / Remove Teacher --</option>
+                    {% for t in teachers %}
+                        <option value="{{ t.id }}">{{ t.get_full_name|default:t.username }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="flex justify-end gap-2 pt-2">
+                <button type="button" onclick="document.getElementById('modal-assign-teacher').classList.add('hidden')" class="px-4 py-2 bg-slate-800 text-slate-300 rounded-xl font-medium">Cancel</button>
+                <button type="submit" class="px-5 py-2 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-xl shadow-lg shadow-purple-600/20">Assign Teacher</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal 4: View Subject Details -->
+<div id="modal-view-subject" class="hidden fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="glass-card max-w-md w-full p-6 rounded-2xl border border-slate-800 space-y-4">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+            <h4 class="text-base font-bold text-white flex items-center gap-2">
+                <i data-lucide="book" class="w-4 h-4 text-emerald-400"></i> Subject Particulars
+            </h4>
+            <button type="button" onclick="document.getElementById('modal-view-subject').classList.add('hidden')" class="text-slate-400 hover:text-white">
+                <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+        </div>
+        <div class="space-y-3 text-xs">
+            <div class="flex justify-between border-b border-slate-800 pb-2">
+                <span class="text-slate-400">Subject Name:</span>
+                <span id="v-name" class="text-white font-bold"></span>
+            </div>
+            <div class="flex justify-between border-b border-slate-800 pb-2">
+                <span class="text-slate-400">Subject Code:</span>
+                <span id="v-code" class="text-blue-400 font-mono font-bold"></span>
+            </div>
+            <div class="flex justify-between border-b border-slate-800 pb-2">
+                <span class="text-slate-400">Class Level:</span>
+                <span id="v-class" class="text-slate-200 font-semibold"></span>
+            </div>
+            <div class="flex justify-between border-b border-slate-800 pb-2">
+                <span class="text-slate-400">Section:</span>
+                <span id="v-section" class="text-slate-300"></span>
+            </div>
+            <div class="flex justify-between border-b border-slate-800 pb-2">
+                <span class="text-slate-400">Assigned Teacher:</span>
+                <span id="v-teacher" class="text-purple-300 font-semibold"></span>
+            </div>
+            <div class="flex justify-between border-b border-slate-800 pb-2">
+                <span class="text-slate-400">Subject Type:</span>
+                <span id="v-type" class="font-bold"></span>
+            </div>
+            <div class="flex justify-between">
+                <span class="text-slate-400">Status:</span>
+                <span id="v-status" class="font-bold"></span>
+            </div>
+        </div>
+        <div class="flex justify-end pt-2">
+            <button type="button" onclick="document.getElementById('modal-view-subject').classList.add('hidden')" class="px-4 py-2 bg-slate-800 text-slate-300 rounded-xl font-medium">Close</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    function openCreateSubjectModal() {
+        document.getElementById('subject-modal-title').innerHTML = '<i data-lucide="book-open" class="w-4 h-4 text-emerald-400"></i> Add New Subject';
+        document.getElementById('subject-form-id').value = '';
+        document.getElementById('subject-form-name').value = '';
+        document.getElementById('subject-form-code').value = '';
+        document.getElementById('subject-form-section').value = '';
+        document.getElementById('subject-form-teacher').value = '';
+        document.getElementById('subject-form-elective').checked = false;
+        document.getElementById('subject-form-active').checked = true;
+        document.getElementById('modal-subject-form').classList.remove('hidden');
+    }
+
+    function openEditSubjectModal(id, name, code, classId, sectionId, teacherId, isElective, isActive) {
+        document.getElementById('subject-modal-title').innerHTML = '<i data-lucide="edit-3" class="w-4 h-4 text-blue-400"></i> Edit Subject';
+        document.getElementById('subject-form-id').value = id;
+        document.getElementById('subject-form-name').value = name;
+        document.getElementById('subject-form-code').value = code;
+        document.getElementById('subject-form-class').value = classId;
+        document.getElementById('subject-form-section').value = sectionId;
+        document.getElementById('subject-form-teacher').value = teacherId;
+        document.getElementById('subject-form-elective').checked = (isElective === 'True' || isElective === 'true');
+        document.getElementById('subject-form-active').checked = (isActive === 'True' || isActive === 'true');
+        document.getElementById('modal-subject-form').classList.remove('hidden');
+    }
+
+    function openAssignTeacherModal(subjectId, subjectName, teacherId) {
+        document.getElementById('assign-subject-name').innerText = subjectName;
+        document.getElementById('assign-teacher-select').value = teacherId;
+        document.getElementById('assign-teacher-form').action = '/academics/subjects/' + subjectId + '/assign-teacher/';
+        document.getElementById('modal-assign-teacher').classList.remove('hidden');
+    }
+
+    function openViewSubjectModal(name, code, className, sectionName, teacherName, isElective, isActive) {
+        document.getElementById('v-name').innerText = name;
+        document.getElementById('v-code').innerText = code;
+        document.getElementById('v-class').innerText = className;
+        document.getElementById('v-section').innerText = sectionName;
+        document.getElementById('v-teacher').innerText = teacherName;
+        document.getElementById('v-type').innerText = (isElective === 'True' || isElective === 'true') ? 'Elective' : 'Compulsory';
+        document.getElementById('v-status').innerText = (isActive === 'True' || isActive === 'true') ? 'Active' : 'Inactive';
+        document.getElementById('modal-view-subject').classList.remove('hidden');
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,226 @@
+{% extends 'base.html' %}
+{% load i18n %}
+
+{% block title %}{% trans "Roles & Permissions Management (RBAC)" %} — School Management System{% endblock %}
+{% block header_title %}{% trans "Role-Based Access Control (RBAC)" %}{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto space-y-6" x-data="{ showCreateModal: false }">
+    <!-- Top Action Bar -->
+    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div>
+            <h3 class="text-xl font-bold text-slate-900 flex items-center gap-2">
+                <i data-lucide="shield-check" class="w-6 h-6 text-blue-600"></i>
+                {% trans "Roles & Permissions Management" %}
+            </h3>
+            <p class="text-xs text-slate-500 mt-0.5">
+                {% trans "Configure custom roles, grant granular module permissions, and manage user access rights." %}
+            </p>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-2">
+            <a href="{% url 'role_user_assignment' %}" class="px-4 py-2 border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-semibold rounded-xl inline-flex items-center gap-1.5 transition">
+                <i data-lucide="user-cog" class="w-4 h-4 text-slate-500"></i>
+                {% trans "Manage User Role Assignments" %}
+            </a>
+            <button @click="showCreateModal = true" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl inline-flex items-center gap-1.5 shadow-sm transition">
+                <i data-lucide="plus" class="w-4 h-4"></i>
+                {% trans "Create Custom Role" %}
+            </button>
+        </div>
+    </div>
+
+    <!-- Overview Stats -->
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+            <span class="text-xs font-medium text-slate-500 block">{% trans "Core System Roles" %}</span>
+            <div class="text-2xl font-bold text-slate-900 mt-1">6</div>
+            <span class="text-[10px] text-slate-400">{% trans "Default baseline roles" %}</span>
+        </div>
+        <div class="bg-white p-4 rounded-2xl border border-blue-200 bg-blue-50/20 shadow-sm">
+            <span class="text-xs font-medium text-blue-600 block">{% trans "Custom Dynamic Roles" %}</span>
+            <div class="text-2xl font-bold text-blue-700 mt-1">{{ custom_roles.count }}</div>
+            <span class="text-[10px] text-blue-500">{% trans "Configured for school" %}</span>
+        </div>
+        <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+            <span class="text-xs font-medium text-slate-500 block">{% trans "Granular Permissions" %}</span>
+            <div class="text-2xl font-bold text-slate-900 mt-1">{{ total_perms_count }}</div>
+            <span class="text-[10px] text-slate-400">{% trans "Across 6 functional areas" %}</span>
+        </div>
+        <div class="bg-white p-4 rounded-2xl border border-emerald-200 bg-emerald-50/20 shadow-sm">
+            <span class="text-xs font-medium text-emerald-600 block">{% trans "Access Control" %}</span>
+            <div class="text-sm font-bold text-emerald-800 mt-1.5">Multi-Tenant Scoped</div>
+            <span class="text-[10px] text-emerald-600">{% trans "Object-level security active" %}</span>
+        </div>
+    </div>
+
+    <!-- Custom Roles Section -->
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-4">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+            <div>
+                <h4 class="text-sm font-bold text-slate-900 flex items-center gap-2">
+                    <i data-lucide="key" class="w-4 h-4 text-blue-600"></i>
+                    {% trans "Custom Roles Created by Super Admin" %}
+                </h4>
+                <p class="text-xs text-slate-500">{% trans "Dynamic roles with tailored permissions tailored to your institutional hierarchy." %}</p>
+            </div>
+            <button @click="showCreateModal = true" class="text-xs font-semibold text-blue-600 hover:text-blue-800">
+                + {% trans "New Role" %}
+            </button>
+        </div>
+
+        {% if custom_roles %}
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {% for cr in custom_roles %}
+            <div class="border border-slate-200 hover:border-blue-400 rounded-xl p-4 transition bg-slate-50/30 flex flex-col justify-between space-y-3">
+                <div class="space-y-1.5">
+                    <div class="flex items-start justify-between gap-2">
+                        <h5 class="text-sm font-bold text-slate-900">{{ cr.name }}</h5>
+                        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-blue-100 text-blue-800">
+                            {{ cr.code }}
+                        </span>
+                    </div>
+                    <p class="text-xs text-slate-500 line-clamp-2">{{ cr.description|default:"No description provided." }}</p>
+                    <div class="flex items-center gap-2 text-[11px] pt-1">
+                        <span class="text-slate-400">{% trans "Base Workflow:" %}</span>
+                        <span class="font-semibold text-slate-700">{{ cr.get_base_role_display }}</span>
+                    </div>
+                </div>
+
+                <div class="border-t border-slate-100 pt-3 flex items-center justify-between text-xs">
+                    <span class="px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 font-semibold text-[11px]">
+                        {{ cr.permissions.count }} {% trans "permissions" %}
+                    </span>
+                    <div class="flex items-center gap-1.5">
+                        <a href="{% url 'role_detail' cr.id %}" class="px-2.5 py-1 bg-white border border-slate-300 hover:bg-blue-50 hover:text-blue-700 text-slate-700 rounded-lg font-medium transition" title="Configure Permissions">
+                            {% trans "Edit Matrix" %}
+                        </a>
+                        {% if cr.users.count == 0 %}
+                        <a href="{% url 'role_delete' cr.id %}" onclick="return confirm('Are you sure you want to delete this custom role?');" class="p-1 hover:bg-rose-50 text-slate-400 hover:text-rose-600 rounded-lg transition" title="Delete Role">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="p-8 text-center text-slate-400 bg-slate-50/50 rounded-xl border border-dashed border-slate-200">
+            <i data-lucide="shield-alert" class="w-8 h-8 mx-auto text-slate-300 mb-2"></i>
+            <p class="text-xs font-semibold text-slate-600">{% trans "No custom roles created yet." %}</p>
+            <p class="text-[11px] text-slate-400 mt-1">{% trans "You can create custom roles like 'Vice Principal', 'Exam Controller', or 'Accounts Officer' with customized permissions." %}</p>
+            <button @click="showCreateModal = true" class="mt-3 px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold transition">
+                + {% trans "Create First Custom Role" %}
+            </button>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Core Built-in Roles Section -->
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-4">
+        <div class="border-b border-slate-100 pb-3">
+            <h4 class="text-sm font-bold text-slate-900 flex items-center gap-2">
+                <i data-lucide="lock" class="w-4 h-4 text-slate-600"></i>
+                {% trans "Core Built-in System Roles" %}
+            </h4>
+            <p class="text-xs text-slate-500">{% trans "Default foundational roles pre-configured across the platform." %}</p>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {% for br in builtin_roles %}
+            <div class="p-3.5 rounded-xl border border-slate-200 bg-white flex items-center justify-between">
+                <div>
+                    <h5 class="text-xs font-bold text-slate-900">{{ br.name }}</h5>
+                    <span class="text-[10px] font-mono text-slate-400 block">{{ br.code }}</span>
+                </div>
+                <div class="text-right">
+                    <span class="px-2 py-0.5 rounded-full text-xs font-bold bg-slate-100 text-slate-800">
+                        {{ br.users_count }} {% trans "users" %}
+                    </span>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Create Custom Role Modal -->
+    <div x-show="showCreateModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+        <div @click.away="showCreateModal = false" class="bg-white rounded-2xl max-w-2xl w-full p-6 shadow-xl border border-slate-200 space-y-4 max-h-[90vh] overflow-y-auto">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <h4 class="text-base font-bold text-slate-900 flex items-center gap-2">
+                    <i data-lucide="shield-plus" class="w-5 h-5 text-blue-600"></i>
+                    {% trans "Create New Custom Role" %}
+                </h4>
+                <button @click="showCreateModal = false" class="text-slate-400 hover:text-slate-600">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <form method="POST" action="{% url 'role_create' %}" class="space-y-4 text-xs">
+                {% csrf_token %}
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1">{% trans "Role Name" %} *</label>
+                        <input type="text" name="name" required placeholder="e.g. Vice Principal, Exam Controller" class="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-900 focus:ring-2 focus:ring-blue-600">
+                    </div>
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1">{% trans "Role Code" %} *</label>
+                        <input type="text" name="code" required placeholder="e.g. VICE_PRINCIPAL" class="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-900 focus:ring-2 focus:ring-blue-600 uppercase">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1">{% trans "Base Workflow" %}</label>
+                        <select name="base_role" class="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-900 focus:ring-2 focus:ring-blue-600">
+                            {% for code, label in base_roles %}
+                            <option value="{{ code }}" {% if code == 'TEACHER' %}selected{% endif %}>{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1">{% trans "Description" %}</label>
+                        <input type="text" name="description" placeholder="Brief summary of duties..." class="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-900 focus:ring-2 focus:ring-blue-600">
+                    </div>
+                </div>
+
+                <!-- Permission Matrix Checkboxes -->
+                <div class="space-y-3 pt-2">
+                    <label class="block font-bold text-slate-800 text-sm">{% trans "Assign Permissions" %}</label>
+                    <div class="space-y-4 max-h-60 overflow-y-auto pr-2 border border-slate-200 p-3 rounded-xl bg-slate-50/50">
+                        {% for category, perms in grouped_perms.items %}
+                        <div class="space-y-2">
+                            <span class="text-[11px] font-bold text-blue-700 uppercase tracking-wider block border-b border-slate-200 pb-1">
+                                {{ category }}
+                            </span>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                {% for p in perms %}
+                                <label class="flex items-start gap-2 p-1.5 rounded-lg hover:bg-white text-[11px] text-slate-700 cursor-pointer">
+                                    <input type="checkbox" name="permissions" value="{{ p.code }}" class="rounded text-blue-600 focus:ring-blue-500 mt-0.5">
+                                    <div>
+                                        <span class="font-medium text-slate-900 block leading-tight">{{ p.name }}</span>
+                                        <span class="text-[10px] text-slate-400 font-mono">{{ p.code }}</span>
+                                    </div>
+                                </label>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+                    <button type="button" @click="showCreateModal = false" class="px-4 py-2 border border-slate-300 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-50">
+                        {% trans "Cancel" %}
+                    </button>
+                    <button type="submit" class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold shadow-sm transition">
+                        {% trans "Create Role" %}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

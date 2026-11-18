@@ -1,0 +1,110 @@
+﻿{% extends 'base.html' %}
+
+{% block title %}SIS Student Directory — School Management System{% endblock %}
+{% block header_title %}Student Information System (SIS) Directory{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Top Bar with Search & Admission Button -->
+    <div class="glass-card p-6 rounded-2xl border border-slate-800 flex flex-wrap items-center justify-between gap-4">
+        <div>
+            <h3 class="text-lg font-bold text-white">Student Information System</h3>
+            <p class="text-xs text-slate-400">Search, filter, manage profiles, and print ID cards.</p>
+        </div>
+
+        {% if is_admin %}
+        <a href="{% url 'student_admission' %}" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-semibold flex items-center gap-2 transition shadow-lg shadow-blue-600/20">
+            <i data-lucide="user-plus" class="w-4 h-4"></i> Admit New Student
+        </a>
+        {% endif %}
+    </div>
+
+    <!-- Filters Section -->
+    <div class="glass-card p-4 rounded-2xl border border-slate-800">
+        <form method="GET" action="{% url 'student_list' %}" class="grid grid-cols-1 sm:grid-cols-4 gap-3 text-xs">
+            <div>
+                <input type="text" name="q" value="{{ query }}" placeholder="Search by name, adm no, roll no..." class="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-white">
+            </div>
+            <div>
+                <select name="class_id" class="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-white">
+                    <option value="">-- Filter by Class --</option>
+                    {% for c in classes %}
+                        <option value="{{ c.id }}" {% if request.GET.class_id == c.id|stringformat:"i" %}selected{% endif %}>{{ c.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <select name="section_id" class="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-white">
+                    <option value="">-- Filter by Section --</option>
+                    {% for s in sections %}
+                        <option value="{{ s.id }}" {% if request.GET.section_id == s.id|stringformat:"i" %}selected{% endif %}>{{ s.class_level.name }} - {{ s.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="flex items-center gap-2">
+                <button type="submit" class="w-full py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold rounded-xl border border-slate-700 transition">Filter</button>
+                <a href="{% url 'student_list' %}" class="px-3 py-2 bg-slate-900 text-slate-400 hover:text-white rounded-xl border border-slate-800">Reset</a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Students Table -->
+    <div class="glass-card p-6 rounded-2xl border border-slate-800 space-y-4">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs text-slate-300">
+                <thead class="bg-slate-950/60 text-slate-400 uppercase tracking-wider font-semibold border-b border-slate-800">
+                    <tr>
+                        <th class="px-4 py-3">Adm No.</th>
+                        <th class="px-4 py-3">Student Name</th>
+                        <th class="px-4 py-3">Class & Section</th>
+                        <th class="px-4 py-3">Roll No.</th>
+                        <th class="px-4 py-3">Guardian</th>
+                        <th class="px-4 py-3">Status</th>
+                        <th class="px-4 py-3 text-right">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-800/60">
+                    {% for student in students %}
+                    <tr class="hover:bg-slate-800/40 transition">
+                        <td class="px-4 py-3 font-mono text-blue-400 font-medium">{{ student.admission_number }}</td>
+                        <td class="px-4 py-3 font-semibold text-white flex items-center gap-2.5">
+                            <div class="w-7 h-7 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-[11px] font-bold text-white overflow-hidden">
+                                {% if student.photo %}
+                                    <img src="{{ student.photo.url }}" class="w-full h-full object-cover" alt="Photo">
+                                {% else %}
+                                    {{ student.get_full_name|slice:":1"|upper }}
+                                {% endif %}
+                            </div>
+                            {{ student.get_full_name }}
+                        </td>
+                        <td class="px-4 py-3">{{ student.class_level.name }} ({{ student.section.name }})</td>
+                        <td class="px-4 py-3 font-mono text-slate-300">{{ student.roll_number }}</td>
+                        <td class="px-4 py-3">
+                            {% if student.guardian %}
+                                <span class="text-slate-200 font-medium">{{ student.guardian.get_full_name }}</span>
+                                <span class="text-[10px] text-slate-500 block">{{ student.guardian.phone }}</span>
+                            {% else %}
+                                <span class="text-slate-500">Unlinked</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-3">
+                            <span class="px-2 py-0.5 text-[10px] font-semibold bg-emerald-500/10 text-emerald-400 rounded-full border border-emerald-500/20">
+                                {{ student.get_status_display }}
+                            </span>
+                        </td>
+                        <td class="px-4 py-3 text-right space-x-1.5">
+                            <a href="{% url 'student_detail' student.id %}" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-[11px] font-medium border border-slate-700">Profile</a>
+                            <a href="{% url 'student_id_card_pdf' student.id %}" target="_blank" class="px-2.5 py-1 bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 rounded-lg text-[11px] font-medium border border-blue-500/30">ID Card PDF</a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="px-4 py-8 text-center text-slate-500">No student records found matching the search criteria.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

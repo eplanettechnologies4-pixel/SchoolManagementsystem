@@ -1,0 +1,173 @@
+{% extends 'base.html' %}
+{% load i18n %}
+
+{% block title %}{% trans "New Staff Registration" %} — School Management System{% endblock %}
+{% block header_title %}{% trans "Register New Staff / Faculty Member" %}{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto space-y-6">
+    <div class="flex items-center justify-between">
+        <div>
+            <h3 class="text-lg font-bold text-slate-900">{% trans "Staff Registration" %}</h3>
+            <p class="text-xs text-slate-500">{% trans "Create employee record and user login credentials automatically." %}</p>
+        </div>
+        <a href="{% url 'staff_list' %}" class="px-4 py-2 border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-semibold rounded-xl inline-flex items-center gap-1.5 transition">
+            <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i> {% trans "Back to Directory" %}
+        </a>
+    </div>
+
+    <form method="POST" enctype="multipart/form-data" class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-6">
+        {% csrf_token %}
+
+        <div class="border-b border-slate-100 pb-3">
+            <h4 class="text-sm font-bold text-blue-700 uppercase tracking-wider flex items-center gap-2">
+                <i data-lucide="user-check" class="w-4 h-4"></i> {% trans "1. Personal & Contact Information" %}
+            </h4>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+            <div class="space-y-1">
+                <label class="block font-medium text-slate-700">{{ form.first_name.label }} *</label>
+                {{ form.first_name }}
+                {% if form.first_name.errors %}<p class="text-xs text-red-600">{{ form.first_name.errors.0 }}</p>{% endif %}
+            </div>
+            <div class="space-y-1">
+                <label class="block font-medium text-slate-700">{{ form.last_name.label }} *</label>
+                {{ form.last_name }}
+                {% if form.last_name.errors %}<p class="text-xs text-red-600">{{ form.last_name.errors.0 }}</p>{% endif %}
+            </div>
+            <div class="space-y-1">
+                <label class="block font-medium text-slate-700">{{ form.email.label }} *</label>
+                {{ form.email }}
+                {% if form.email.errors %}<p class="text-xs text-red-600">{{ form.email.errors.0 }}</p>{% endif %}
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+            <div class="space-y-1">
+                <label class="block font-medium text-slate-700">{{ form.phone.label }} *</label>
+                {{ form.phone }}
+                {% if form.phone.errors %}<p class="text-xs text-red-600">{{ form.phone.errors.0 }}</p>{% endif %}
+            </div>
+            <div class="space-y-1">
+                <label class="block font-medium text-slate-700">{{ form.cnic.label }}</label>
+                {{ form.cnic }}
+                {% if form.cnic.errors %}<p class="text-xs text-red-600">{{ form.cnic.errors.0 }}</p>{% endif %}
+            </div>
+            <div class="space-y-1">
+                <label class="block font-medium text-slate-700">{{ form.emergency_contact.label }}</label>
+                {{ form.emergency_contact }}
+                {% if form.emergency_contact.errors %}<p class="text-xs text-red-600">{{ form.emergency_contact.errors.0 }}</p>{% endif %}
+            </div>
+        </div>
+
+        <div class="border-b border-slate-100 pb-3 pt-2">
+            <h4 class="text-sm font-bold text-blue-700 uppercase tracking-wider flex items-center gap-2">
+                <i data-lucide="briefcase" class="w-4 h-4"></i> {% trans "2. Employment & Shift Details" %}
+            </h4>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+            <div class="space-y-1">
+                <label class="block font-medium text-slate-700">{{ form.designation.label }} *</label>
+                {{ form.designation }}
+                {% if form.designation.errors %}<p class="text-xs text-red-600">{{ form.designation.errors.0 }}</p>{% endif %}
+            </div>
+            <div class="space-y-1">
+                <label class="block font-medium text-slate-700">{{ form.department.label }}</label>
+                {{ form.department }}
+                {% if form.department.errors %}<p class="text-xs text-red-600">{{ form.department.errors.0 }}</p>{% endif %}
+            </div>
+            <div class="space-y-1">
+                <label class="block font-medium text-slate-700">{{ form.qualification.label }}</label>
+                {{ form.qualification }}
+                {% if form.qualification.errors %}<p class="text-xs text-red-600">{{ form.qualification.errors.0 }}</p>{% endif %}
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+            <div class="space-y-1">
+                <label class="block font-medium text-slate-700">{{ form.joining_date.label }}</label>
+                {{ form.joining_date }}
+                {% if form.joining_date.errors %}<p class="text-xs text-red-600">{{ form.joining_date.errors.0 }}</p>{% endif %}
+            </div>
+            <div class="space-y-1">
+                <label class="block font-medium text-slate-700">{{ form.employment_type.label }}</label>
+                {{ form.employment_type }}
+                {% if form.employment_type.errors %}<p class="text-xs text-red-600">{{ form.employment_type.errors.0 }}</p>{% endif %}
+            </div>
+            <div class="space-y-1">
+                <label class="block font-medium text-slate-700">{{ form.status.label }}</label>
+                {{ form.status }}
+                {% if form.status.errors %}<p class="text-xs text-red-600">{{ form.status.errors.0 }}</p>{% endif %}
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+            <div class="space-y-1">
+                <label class="block font-medium text-slate-700">{{ form.shift.label }}</label>
+                {{ form.shift }}
+                {% if form.shift.errors %}<p class="text-xs text-red-600">{{ form.shift.errors.0 }}</p>{% endif %}
+            </div>
+            <div class="space-y-1">
+                <label class="block font-medium text-slate-700">{{ form.photo.label }}</label>
+                {{ form.photo }}
+                {% if form.photo.errors %}<p class="text-xs text-red-600">{{ form.photo.errors.0 }}</p>{% endif %}
+            </div>
+        </div>
+
+        <div class="border-b border-slate-100 pb-3 pt-2">
+            <h4 class="text-sm font-bold text-blue-700 uppercase tracking-wider flex items-center gap-2">
+                <i data-lucide="wallet" class="w-4 h-4"></i> {% trans "3. Salary, Allowances & Deductions Policy" %}
+            </h4>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+            <div class="space-y-1">
+                <label class="block font-medium text-slate-700">{{ form.basic_salary.label }} *</label>
+                {{ form.basic_salary }}
+                {% if form.basic_salary.errors %}<p class="text-xs text-red-600">{{ form.basic_salary.errors.0 }}</p>{% endif %}
+            </div>
+            <div class="space-y-1">
+                <label class="block font-medium text-slate-700">{{ form.allowances.label }}</label>
+                {{ form.allowances }}
+                {% if form.allowances.errors %}<p class="text-xs text-red-600">{{ form.allowances.errors.0 }}</p>{% endif %}
+            </div>
+            <div class="space-y-1">
+                <label class="block font-medium text-slate-700">{{ form.late_deduction_policy.label }}</label>
+                {{ form.late_deduction_policy }}
+                {% if form.late_deduction_policy.errors %}<p class="text-xs text-red-600">{{ form.late_deduction_policy.errors.0 }}</p>{% endif %}
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+            <div class="space-y-1">
+                <label class="block font-medium text-slate-700">{{ form.bank_name.label }}</label>
+                {{ form.bank_name }}
+                {% if form.bank_name.errors %}<p class="text-xs text-red-600">{{ form.bank_name.errors.0 }}</p>{% endif %}
+            </div>
+            <div class="space-y-1">
+                <label class="block font-medium text-slate-700">{{ form.bank_account_number.label }}</label>
+                {{ form.bank_account_number }}
+                {% if form.bank_account_number.errors %}<p class="text-xs text-red-600">{{ form.bank_account_number.errors.0 }}</p>{% endif %}
+            </div>
+        </div>
+
+        <div class="text-xs space-y-1">
+            <label class="block font-medium text-slate-700">{{ form.address.label }}</label>
+            {{ form.address }}
+            {% if form.address.errors %}<p class="text-xs text-red-600">{{ form.address.errors.0 }}</p>{% endif %}
+        </div>
+
+        <div class="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
+            <a href="{% url 'staff_list' %}" class="px-4 py-2 border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-semibold rounded-xl transition">
+                {% trans "Cancel" %}
+            </a>
+            <button type="submit" class="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl inline-flex items-center gap-2 shadow-sm transition">
+                <i data-lucide="check" class="w-4 h-4"></i> {% trans "Register Staff Member" %}
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}
+

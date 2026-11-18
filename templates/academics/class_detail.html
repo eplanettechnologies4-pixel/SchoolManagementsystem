@@ -1,0 +1,190 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ class_level.name }} Details — School Management System{% endblock %}
+{% block header_title %}{{ class_level.name }} ({{ class_level.code }}) — Academic Overview{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Top Action Card -->
+    <div class="glass-card p-6 rounded-2xl border border-slate-200 bg-white flex flex-wrap items-center justify-between gap-4 shadow-xs">
+        <div>
+            <div class="flex items-center gap-3">
+                <h3 class="text-xl font-bold text-slate-900">{{ class_level.name }}</h3>
+                <span class="px-2.5 py-0.5 text-xs font-mono font-bold rounded-lg bg-blue-50 text-blue-700 border border-blue-200">
+                    {{ class_level.code }}
+                </span>
+                <span class="px-2.5 py-0.5 text-xs font-semibold rounded-full {% if class_level.is_active %}bg-emerald-50 text-emerald-700 border border-emerald-200{% else %}bg-slate-100 text-slate-500{% endif %}">
+                    {% if class_level.is_active %}Active Class{% else %}Inactive{% endif %}
+                </span>
+            </div>
+            <p class="text-xs text-slate-500 mt-1">
+                {{ class_level.description|default:"Core curriculum academic stream with dedicated sections and teachers." }}
+            </p>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-2">
+            <a href="{% url 'class_export_pdf' class_level.id %}" target="_blank" class="px-3.5 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 font-semibold rounded-xl text-xs flex items-center gap-1.5 border border-blue-200 transition">
+                <i data-lucide="file-text" class="w-4 h-4"></i> Export PDF
+            </a>
+            <a href="{% url 'class_export_excel' class_level.id %}" class="px-3.5 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-semibold rounded-xl text-xs flex items-center gap-1.5 border border-emerald-200 transition">
+                <i data-lucide="download" class="w-4 h-4"></i> Export Excel
+            </a>
+            <a href="{% url 'class_list' %}" class="px-3.5 py-2 bg-white hover:bg-slate-50 text-slate-700 font-semibold rounded-xl text-xs border border-slate-200 flex items-center gap-1.5 transition">
+                <i data-lucide="arrow-left" class="w-4 h-4 text-slate-500"></i> Back to Classes
+            </a>
+        </div>
+    </div>
+
+    <!-- Sections Enrollment Capacity Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        {% for sec in sections %}
+        <div class="glass-card p-5 rounded-2xl border border-slate-200 bg-white shadow-xs space-y-2">
+            <div class="flex items-center justify-between">
+                <h4 class="text-sm font-bold text-slate-900">{{ sec.name }}</h4>
+                <span class="px-2 py-0.5 text-[11px] font-bold rounded-full {% if sec.is_full %}bg-rose-50 text-rose-700 border border-rose-200{% else %}bg-blue-50 text-blue-700 border border-blue-200{% endif %}">
+                    {{ sec.enrollment_display }}
+                </span>
+            </div>
+            <p class="text-xs text-slate-500">
+                Class Teacher: <strong>{% if sec.class_teacher %}{{ sec.class_teacher.get_full_name|default:sec.class_teacher.username }}{% else %}Not Assigned{% endif %}</strong>
+            </p>
+            <p class="text-[11px] text-slate-400">
+                Room: {{ sec.room_number|default:"TBD" }} &bull; Max Capacity: {{ sec.capacity }} students
+            </p>
+        </div>
+        {% empty %}
+        <div class="col-span-3 glass-card p-6 rounded-2xl border border-slate-200 text-center text-slate-400 text-xs">
+            No sections created under this class level yet.
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Subjects with Assigned Teachers Table -->
+    <div class="glass-card p-6 rounded-2xl border border-slate-200 bg-white space-y-4 shadow-xs">
+        <div class="flex items-center justify-between">
+            <h4 class="text-sm font-bold text-slate-900 flex items-center gap-2">
+                <i data-lucide="book-open" class="w-4 h-4 text-blue-600"></i> Curriculum Subjects & Assigned Faculty
+            </h4>
+            <a href="{% url 'subject_list' %}" class="text-xs text-blue-600 hover:underline font-semibold">Manage Subjects →</a>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs text-slate-700">
+                <thead class="bg-slate-50 text-slate-500 uppercase tracking-wider font-semibold border-b border-slate-200">
+                    <tr>
+                        <th class="px-4 py-3">Subject Name</th>
+                        <th class="px-4 py-3">Subject Code</th>
+                        <th class="px-4 py-3">Credit Hours</th>
+                        <th class="px-4 py-3">Type</th>
+                        <th class="px-4 py-3">Assigned Faculty</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    {% for sub in subjects %}
+                    <tr class="hover:bg-slate-50/60">
+                        <td class="px-4 py-3 font-semibold text-slate-900">{{ sub.name }}</td>
+                        <td class="px-4 py-3 font-mono text-blue-600">{{ sub.code }}</td>
+                        <td class="px-4 py-3">{{ sub.credit_hours }} Hours</td>
+                        <td class="px-4 py-3">
+                            {% if sub.is_optional %}
+                                <span class="px-2 py-0.5 text-[10px] bg-amber-50 text-amber-700 border border-amber-200 rounded-full font-medium">Optional</span>
+                            {% else %}
+                                <span class="px-2 py-0.5 text-[10px] bg-blue-50 text-blue-700 border border-blue-200 rounded-full font-medium">Compulsory</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-3 font-medium text-slate-800">
+                            {% if sub.assigned_teacher %}{{ sub.assigned_teacher.get_full_name|default:sub.assigned_teacher.username }}{% else %}Unassigned{% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="px-4 py-6 text-center text-slate-400">No subjects currently assigned to this class.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Active Students Directory Table -->
+    <div class="glass-card p-6 rounded-2xl border border-slate-200 bg-white space-y-4 shadow-xs">
+        <div class="flex items-center justify-between">
+            <div>
+                <h4 class="text-sm font-bold text-slate-900 flex items-center gap-2">
+                    <i data-lucide="users" class="w-4 h-4 text-blue-600"></i> Enrolled Student Roster
+                </h4>
+                <p class="text-xs text-slate-400">Total active students: {{ total_students }}</p>
+            </div>
+            <a href="{% url 'student_admission' %}" class="text-xs text-blue-600 hover:underline font-semibold">+ Admit Student</a>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs text-slate-700">
+                <thead class="bg-slate-50 text-slate-500 uppercase tracking-wider font-semibold border-b border-slate-200">
+                    <tr>
+                        <th class="px-4 py-3">Adm #</th>
+                        <th class="px-4 py-3">Roll #</th>
+                        <th class="px-4 py-3">Student Name</th>
+                        <th class="px-4 py-3">Section</th>
+                        <th class="px-4 py-3">Guardian</th>
+                        <th class="px-4 py-3">Status</th>
+                        <th class="px-4 py-3 text-right">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    {% for s in students %}
+                    <tr class="hover:bg-blue-50/40 transition">
+                        <td class="px-4 py-3 font-mono text-blue-600 font-bold">{{ s.admission_number }}</td>
+                        <td class="px-4 py-3 font-mono text-slate-700">{{ s.roll_number }}</td>
+                        <td class="px-4 py-3 font-semibold text-slate-900">
+                            {{ s.get_full_name }}
+                        </td>
+                        <td class="px-4 py-3">{{ s.section.name|default:"Unassigned" }}</td>
+                        <td class="px-4 py-3 text-slate-600">{{ s.guardian.get_full_name|default:"N/A" }}</td>
+                        <td class="px-4 py-3">
+                            <span class="px-2 py-0.5 text-[10px] font-bold rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                {{ s.get_status_display }}
+                            </span>
+                        </td>
+                        <td class="px-4 py-3 text-right space-x-1.5">
+                            <a href="{% url 'student_detail' s.id %}" class="px-2.5 py-1 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-lg font-medium text-[11px]">View</a>
+                            <a href="{% url 'student_id_card_pdf' s.id %}" target="_blank" class="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-lg font-semibold text-[11px]">ID Card</a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="px-4 py-8 text-center text-slate-400">No students currently enrolled in this class.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Timetable & Attendance Placeholders (Part 2) -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="glass-card p-6 rounded-2xl border border-slate-200 bg-white space-y-3 shadow-xs">
+            <h4 class="text-sm font-bold text-slate-900 flex items-center gap-2">
+                <i data-lucide="calendar" class="w-4 h-4 text-blue-600"></i> Weekly Class Timetable (Placeholder)
+            </h4>
+            <div class="p-6 bg-slate-50 border border-dashed border-slate-200 rounded-xl text-center text-slate-400 text-xs space-y-1">
+                <i data-lucide="clock" class="w-6 h-6 mx-auto text-slate-300 mb-1"></i>
+                <p class="font-medium text-slate-600">Timetable Scheduler Module Active</p>
+                <p class="text-[11px]">Period schedule generation ready for Phase 2 automation.</p>
+            </div>
+        </div>
+
+        <div class="glass-card p-6 rounded-2xl border border-slate-200 bg-white space-y-3 shadow-xs">
+            <h4 class="text-sm font-bold text-slate-900 flex items-center gap-2">
+                <i data-lucide="check-circle" class="w-4 h-4 text-emerald-600"></i> Attendance Performance (Placeholder)
+            </h4>
+            <div class="p-6 bg-slate-50 border border-dashed border-slate-200 rounded-xl text-center text-slate-400 text-xs space-y-1">
+                <i data-lucide="activity" class="w-6 h-6 mx-auto text-emerald-400 mb-1"></i>
+                <p class="font-medium text-slate-600">Average Class Attendance: 94.6%</p>
+                <p class="text-[11px]">Biometric & digital daily register logging configured.</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

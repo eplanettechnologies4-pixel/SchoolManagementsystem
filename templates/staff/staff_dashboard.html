@@ -1,0 +1,295 @@
+{% extends 'base.html' %}
+{% load i18n %}
+
+{% block title %}{% trans "Staff Portal" %} — {{ staff.get_full_name }}{% endblock %}
+{% block header_title %}{% trans "Staff Portal & Attendance Check-in" %}{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto space-y-6" x-data="staffPortal()">
+    <!-- Welcome & Check-in Card -->
+    <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row items-center justify-between gap-6">
+        <div class="flex items-center gap-4">
+            <div class="w-16 h-16 rounded-2xl bg-blue-50 border-2 border-blue-200 overflow-hidden flex items-center justify-center text-xl font-bold text-blue-700 shadow-sm">
+                {% if staff.photo %}
+                    <img src="{{ staff.photo.url }}" class="w-full h-full object-cover" alt="Staff Photo">
+                {% else %}
+                    {{ staff.get_full_name|slice:":1"|upper }}
+                {% endif %}
+            </div>
+            <div>
+                <h3 class="text-xl font-bold text-slate-900">{{ staff.get_full_name }}</h3>
+                <p class="text-xs text-blue-600 font-semibold">{{ staff.designation }} &bull; <span class="text-slate-500 font-mono">{{ staff.employee_id }}</span></p>
+                <p class="text-xs text-slate-400 mt-1">{% trans "Shift" %}: {{ staff.shift.name|default:"Standard Morning Shift" }} (08:00 - 14:00)</p>
+            </div>
+        </div>
+
+        <!-- Attendance Action Controls -->
+        <div class="flex flex-col sm:flex-row items-center gap-3">
+            {% if not today_att or not today_att.check_in %}
+                <form method="POST" action="{% url 'staff_check_in' %}" id="checkInForm" @submit.prevent="submitCheckIn">
+                    {% csrf_token %}
+                    <input type="hidden" name="latitude" x-model="latitude">
+                    <input type="hidden" name="longitude" x-model="longitude">
+                    <button type="submit" :disabled="loading" class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl inline-flex items-center gap-2 shadow-sm transition disabled:opacity-50">
+                        <i data-lucide="map-pin" class="w-4 h-4"></i>
+                        <span x-text="loading ? 'Capturing GPS...' : '{% trans "Check-in (GPS)" %}'"></span>
+                    </button>
+                </form>
+            {% else %}
+                <div class="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs flex items-center gap-3">
+                    <div class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></div>
+                    <div>
+                        <span class="text-emerald-700 font-bold block">{% trans "Checked In at" %} {{ today_att.check_in|time:"H:i" }}</span>
+                        <span class="text-[11px] text-emerald-600 font-semibold">{% trans "Status" %}: {{ today_att.get_status_display }}</span>
+                    </div>
+                </div>
+
+                {% if not today_att.check_out %}
+                    <form method="POST" action="{% url 'staff_check_out' %}">
+                        {% csrf_token %}
+                        <button type="submit" class="px-5 py-2.5 bg-slate-900 hover:bg-black text-white text-xs font-bold rounded-xl inline-flex items-center gap-2 shadow-sm transition">
+                            <i data-lucide="log-out" class="w-4 h-4"></i> {% trans "Check-out" %}
+                        </button>
+                    </form>
+                {% else %}
+                    <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs">
+                        <span class="text-slate-500">{% trans "Checked Out at" %}:</span>
+                        <strong class="text-slate-800 ml-1">{{ today_att.check_out|time:"H:i" }}</strong>
+                    </div>
+                {% endif %}
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Metrics Row -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+            <span class="text-xs font-medium text-slate-500 block">{% trans "Present This Month" %}</span>
+            <div class="text-2xl font-bold text-emerald-600 mt-1">{{ payroll_summary.present_days }} <span class="text-xs font-normal text-slate-400">/ {{ payroll_summary.total_calendar_days }} days</span></div>
+        </div>
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+            <span class="text-xs font-medium text-slate-500 block">{% trans "Late Arrivals" %}</span>
+            <div class="text-2xl font-bold text-amber-600 mt-1">{{ payroll_summary.late_days }}</div>
+        </div>
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+            <span class="text-xs font-medium text-slate-500 block">{% trans "Approved Leaves" %}</span>
+            <div class="text-2xl font-bold text-blue-600 mt-1">{{ payroll_summary.leave_days }}</div>
+        </div>
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+            <span class="text-xs font-medium text-slate-500 block">{% trans "Effective Payable Days" %}</span>
+            <div class="text-2xl font-bold text-slate-900 mt-1">{{ payroll_summary.payable_effective_days }}</div>
+        </div>
+    </div>
+
+    <!-- Aaj Ki Classes & Leave Balance Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Aaj Ki Classes Widget -->
+        <div class="lg:col-span-2 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <h4 class="text-sm font-bold text-slate-900 flex items-center gap-2">
+                    <i data-lucide="book-open" class="w-4 h-4 text-blue-600"></i> {% trans "Aaj Ki Classes (Assigned Subjects & Periods)" %}
+                </h4>
+                <span class="text-xs text-slate-400 font-semibold">{{ assigned_classes.count }} {% trans "subjects assigned" %}</span>
+            </div>
+
+            {% if assigned_classes %}
+                <div class="divide-y divide-slate-100">
+                    {% for assign in assigned_classes %}
+                        <div class="py-3 flex items-center justify-between text-xs">
+                            <div class="space-y-0.5">
+                                <strong class="text-slate-900 font-semibold text-sm">{{ assign.subject.name }}</strong>
+                                <p class="text-slate-500">
+                                    {{ assign.class_level.name }} &bull; Section {{ assign.section.name|default:"All" }}
+                                </p>
+                            </div>
+                            <div class="text-right">
+                                <span class="px-2.5 py-1 bg-blue-50 text-blue-700 font-semibold rounded-lg text-xs">
+                                    {{ assign.periods_per_week }} {% trans "periods/week" %}
+                                </span>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p class="text-xs text-slate-400 py-6 text-center italic">{% trans "No academic subject teaching assignments scheduled for your profile." %}</p>
+            {% endif %}
+        </div>
+
+        <!-- Leave Balance & Quick Apply Card -->
+        <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <h4 class="text-sm font-bold text-slate-900 flex items-center gap-2">
+                    <i data-lucide="calendar" class="w-4 h-4 text-emerald-600"></i> {% trans "Leave Balance" %}
+                </h4>
+                <a href="{% url 'staff_leave_apply' %}" class="text-xs text-blue-600 hover:text-blue-800 font-semibold inline-flex items-center gap-1">
+                    <i data-lucide="plus" class="w-3.5 h-3.5"></i> {% trans "Apply Leave" %}
+                </a>
+            </div>
+
+            <div class="space-y-3">
+                {% for lb in leave_balances %}
+                    <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs flex items-center justify-between">
+                        <div>
+                            <strong class="text-slate-800 block">{{ lb.name }}</strong>
+                            <span class="text-[11px] text-slate-400">{{ lb.used }} used / {{ lb.allowed }} allowed</span>
+                        </div>
+                        <span class="text-sm font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-lg border border-emerald-200">
+                            {{ lb.remaining }} left
+                        </span>
+                    </div>
+                {% empty %}
+                    <p class="text-xs text-slate-400 italic">{% trans "No leave policies configured." %}</p>
+                {% endfor %}
+            </div>
+
+            <div class="pt-2 border-t border-slate-100">
+                <h5 class="text-xs font-bold text-slate-700 mb-2">{% trans "Recent Requests" %}</h5>
+                <div class="space-y-2">
+                    {% for req in recent_leaves %}
+                        <div class="p-2.5 bg-slate-50 rounded-lg text-[11px] flex items-center justify-between">
+                            <div>
+                                <span class="font-medium text-slate-800">{{ req.leave_type.name }}</span>
+                                <span class="text-slate-400 block">{{ req.from_date|date:"M d" }} - {{ req.to_date|date:"M d" }}</span>
+                            </div>
+                            <span class="px-2 py-0.5 rounded text-[10px] font-semibold {% if req.status == 'APPROVED' %}bg-emerald-50 text-emerald-700{% elif req.status == 'REJECTED' %}bg-red-50 text-red-700{% else %}bg-amber-50 text-amber-700{% endif %}">
+                                {{ req.get_status_display }}
+                            </span>
+                        </div>
+                    {% empty %}
+                        <p class="text-[11px] text-slate-400 italic">{% trans "No recent leave applications." %}</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- My Compensation & Payslips Section -->
+    <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-5">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
+            <div>
+                <h4 class="text-sm font-bold text-slate-900 flex items-center gap-2">
+                    <i data-lucide="receipt" class="w-4 h-4 text-blue-600"></i>
+                    {% trans "My Compensation & Monthly Payslips" %}
+                </h4>
+                <p class="text-xs text-slate-500">
+                    {% trans "Overview of your monthly remuneration, attendance-based deductions, and official payslips." %}
+                </p>
+            </div>
+            <div class="flex items-center gap-2">
+                <span class="text-xs text-slate-500">{% trans "Late Policy:" %}</span>
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-blue-50 text-blue-700">
+                    {{ staff.get_late_deduction_policy_display }}
+                </span>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="p-4 rounded-xl border border-slate-100 bg-slate-50/50 space-y-1">
+                <span class="text-xs text-slate-500 font-medium block">{% trans "Monthly Base Salary" %}</span>
+                <div class="text-xl font-bold text-slate-900">PKR {{ staff.basic_salary|floatformat:2 }}</div>
+                <span class="text-[10px] text-slate-400">{% trans "Allowances:" %} PKR {{ staff.allowances|floatformat:2 }}</span>
+            </div>
+            <div class="p-4 rounded-xl border border-slate-100 bg-slate-50/50 space-y-1">
+                <span class="text-xs text-slate-500 font-medium block">{% trans "Disbursement Bank" %}</span>
+                <div class="text-sm font-bold text-slate-900">{{ staff.bank_name|default:"Not configured" }}</div>
+                <span class="text-[10px] text-slate-400 font-mono">{{ staff.bank_account_number|default:"Contact accounts to set IBAN" }}</span>
+            </div>
+            <div class="p-4 rounded-xl border border-blue-100 bg-blue-50/30 space-y-1">
+                <span class="text-xs text-blue-600 font-medium block">{% trans "Current Month Status" %}</span>
+                {% if current_month_slip %}
+                    <div class="text-xl font-bold text-blue-700">PKR {{ current_month_slip.net_salary|floatformat:2 }}</div>
+                    <span class="text-[10px] text-blue-600 font-medium">{% trans "Status:" %} {{ current_month_slip.get_status_display }} (Deductions: PKR {{ current_month_slip.total_deductions|floatformat:0 }})</span>
+                {% else %}
+                    <div class="text-sm font-semibold text-slate-600 mt-1">{% trans "Pending Payroll Run" %}</div>
+                    <span class="text-[10px] text-slate-400">{% trans "Generated at month end" %}</span>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Payslips Table -->
+        <div class="overflow-x-auto rounded-xl border border-slate-200">
+            <table class="w-full text-left text-xs border-collapse">
+                <thead class="bg-slate-50 text-slate-600 uppercase text-[10px] font-bold border-b border-slate-200">
+                    <tr>
+                        <th class="py-2.5 px-3">{% trans "Slip Number" %}</th>
+                        <th class="py-2.5 px-3">{% trans "Month / Year" %}</th>
+                        <th class="py-2.5 px-3 text-right">{% trans "Gross" %}</th>
+                        <th class="py-2.5 px-3 text-right">{% trans "Deductions" %}</th>
+                        <th class="py-2.5 px-3 text-right">{% trans "Net Salary" %}</th>
+                        <th class="py-2.5 px-3 text-center">{% trans "Status" %}</th>
+                        <th class="py-2.5 px-3 text-right">{% trans "Download" %}</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 text-slate-700">
+                    {% for slip in recent_salary_slips %}
+                    <tr class="hover:bg-slate-50 transition">
+                        <td class="py-2.5 px-3 font-mono font-medium text-slate-900">
+                            <a href="{% url 'salary_slip_detail' slip.id %}" class="hover:text-blue-600">
+                                {{ slip.slip_number }}
+                            </a>
+                        </td>
+                        <td class="py-2.5 px-3">{{ slip.month }}/{{ slip.year }}</td>
+                        <td class="py-2.5 px-3 text-right">PKR {{ slip.gross_salary|floatformat:2 }}</td>
+                        <td class="py-2.5 px-3 text-right text-rose-600 font-medium">- PKR {{ slip.total_deductions|floatformat:2 }}</td>
+                        <td class="py-2.5 px-3 text-right font-bold text-blue-700">PKR {{ slip.net_salary|floatformat:2 }}</td>
+                        <td class="py-2.5 px-3 text-center">
+                            {% if slip.status == 'PAID' %}
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
+                                {% trans "PAID" %}
+                            </span>
+                            {% else %}
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800">
+                                {% trans "GENERATED" %}
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td class="py-2.5 px-3 text-right">
+                            <a href="{% url 'salary_slip_pdf' slip.id %}" target="_blank" class="p-1 text-slate-500 hover:text-emerald-600 inline-block" title="Download PDF">
+                                <i data-lucide="download" class="w-4 h-4"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="py-4 text-center text-slate-400 italic">
+                            {% trans "No payslips available yet." %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+function staffPortal() {
+    return {
+        latitude: '',
+        longitude: '',
+        loading: false,
+        submitCheckIn() {
+            this.loading = true;
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (pos) => {
+                        this.latitude = pos.coords.latitude;
+                        this.longitude = pos.coords.longitude;
+                        document.getElementById('checkInForm').submit();
+                    },
+                    (err) => {
+                        console.warn("GPS error:", err);
+                        // Submit anyway with null coordinates, server handles fallback
+                        document.getElementById('checkInForm').submit();
+                    },
+                    { timeout: 8000 }
+                );
+            } else {
+                document.getElementById('checkInForm').submit();
+            }
+        }
+    }
+}
+</script>
+{% endblock %}
+

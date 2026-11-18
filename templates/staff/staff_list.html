@@ -1,0 +1,113 @@
+{% extends 'base.html' %}
+{% load i18n %}
+
+{% block title %}{% trans "Staff Directory" %} — School Management System{% endblock %}
+{% block header_title %}{% trans "Staff Directory & Faculty Roster" %}{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto space-y-6">
+    <!-- Top Action Bar -->
+    <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div>
+            <h3 class="text-lg font-bold text-slate-900">{% trans "Faculty & Administrative Staff" %}</h3>
+            <p class="text-xs text-slate-500">{% trans "Manage teaching faculty, designations, departments, and employment records." %}</p>
+        </div>
+
+        <div class="flex items-center gap-2">
+            <a href="{% url 'staff_create' %}" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl inline-flex items-center gap-1.5 shadow-sm transition">
+                <i data-lucide="user-plus" class="w-4 h-4"></i> {% trans "Add Staff Member" %}
+            </a>
+            <a href="{% url 'staff_tracking_dashboard' %}" class="px-4 py-2 border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-semibold rounded-xl inline-flex items-center gap-1.5 transition">
+                <i data-lucide="map-pin" class="w-4 h-4 text-emerald-600"></i> {% trans "Live Tracking" %}
+            </a>
+        </div>
+    </div>
+
+    <!-- Filters & Search -->
+    <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+        <form method="GET" class="grid grid-cols-1 md:grid-cols-4 gap-3 text-xs">
+            <div class="md:col-span-2">
+                <input type="text" name="q" value="{{ query|default:'' }}" placeholder="{% trans 'Search by name, employee ID, or designation...' %}" class="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-slate-900 focus:ring-2 focus:ring-blue-600">
+            </div>
+            <div>
+                <select name="department" class="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-slate-900 focus:ring-2 focus:ring-blue-600">
+                    <option value="">-- {% trans "All Departments" %} --</option>
+                    {% for dept in departments %}
+                        <option value="{{ dept }}" {% if selected_dept == dept %}selected{% endif %}>{{ dept }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="flex items-center gap-2">
+                <select name="status" class="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-slate-900 focus:ring-2 focus:ring-blue-600">
+                    <option value="">-- {% trans "All Statuses" %} --</option>
+                    <option value="ACTIVE" {% if selected_status == 'ACTIVE' %}selected{% endif %}>Active</option>
+                    <option value="INACTIVE" {% if selected_status == 'INACTIVE' %}selected{% endif %}>Inactive</option>
+                    <option value="ON_LEAVE" {% if selected_status == 'ON_LEAVE' %}selected{% endif %}>On Leave</option>
+                </select>
+                <button type="submit" class="px-4 py-2 bg-slate-900 text-white rounded-xl font-semibold hover:bg-black transition">
+                    {% trans "Filter" %}
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Staff Table -->
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs">
+                <thead class="bg-slate-50 border-b border-slate-200 text-slate-600">
+                    <tr>
+                        <th class="px-4 py-3 font-semibold">{% trans "Staff Member" %}</th>
+                        <th class="px-4 py-3 font-semibold">{% trans "Employee ID" %}</th>
+                        <th class="px-4 py-3 font-semibold">{% trans "Designation" %}</th>
+                        <th class="px-4 py-3 font-semibold">{% trans "Department" %}</th>
+                        <th class="px-4 py-3 font-semibold">{% trans "Phone" %}</th>
+                        <th class="px-4 py-3 font-semibold">{% trans "Status" %}</th>
+                        <th class="px-4 py-3 font-semibold text-right">{% trans "Action" %}</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 text-slate-700">
+                    {% for st in staff_list %}
+                        <tr class="hover:bg-slate-50/50">
+                            <td class="px-4 py-3">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-9 h-9 rounded-xl bg-blue-50 border border-blue-200 text-blue-700 font-bold flex items-center justify-center text-xs">
+                                        {% if st.photo %}
+                                            <img src="{{ st.photo.url }}" class="w-full h-full object-cover rounded-xl" alt="Photo">
+                                        {% else %}
+                                            {{ st.get_full_name|slice:":1"|upper }}
+                                        {% endif %}
+                                    </div>
+                                    <div>
+                                        <strong class="text-slate-900 block font-semibold">{{ st.get_full_name }}</strong>
+                                        <span class="text-slate-400 text-[11px]">{{ st.user.email }}</span>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-4 py-3 font-mono font-semibold text-blue-700">{{ st.employee_id }}</td>
+                            <td class="px-4 py-3 font-medium">{{ st.designation }}</td>
+                            <td class="px-4 py-3 text-slate-500">{{ st.department|default:"General" }}</td>
+                            <td class="px-4 py-3 font-mono text-slate-600">{{ st.phone }}</td>
+                            <td class="px-4 py-3">
+                                <span class="inline-flex px-2 py-0.5 rounded-full text-[11px] font-semibold {% if st.status == 'ACTIVE' %}bg-emerald-50 text-emerald-700 border border-emerald-200{% elif st.status == 'ON_LEAVE' %}bg-blue-50 text-blue-700 border border-blue-200{% else %}bg-slate-100 text-slate-700{% endif %}">
+                                    {{ st.get_status_display }}
+                                </span>
+                            </td>
+                            <td class="px-4 py-3 text-right">
+                                <a href="{% url 'staff_detail' st.id %}" class="px-3 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-lg text-xs transition">
+                                    {% trans "View Profile" %}
+                                </a>
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="7" class="px-4 py-8 text-center text-slate-400 italic">{% trans "No staff members found matching the criteria." %}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

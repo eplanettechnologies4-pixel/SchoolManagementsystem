@@ -1,0 +1,190 @@
+{% extends 'base.html' %}
+
+{% block title %}Promote Students — School Management System{% endblock %}
+{% block header_title %}Student Promotion & Academic Year Migration Tool{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="glass-card p-6 rounded-2xl border border-slate-200 bg-white flex flex-wrap items-center justify-between gap-4 shadow-xs">
+        <div>
+            <h3 class="text-lg font-bold text-slate-900">Student Promotion Wizard</h3>
+            <p class="text-xs text-slate-500 mt-1">Bulk move active students from Class X to Class X+1 with section capacity checks and complete audit rollback safety.</p>
+        </div>
+        <a href="{% url 'class_list' %}" class="px-3.5 py-2 bg-white hover:bg-slate-50 text-slate-700 font-semibold rounded-xl text-xs border border-slate-200 flex items-center gap-1.5 transition">
+            <i data-lucide="arrow-left" class="w-4 h-4 text-slate-500"></i> Back to Classes
+        </a>
+    </div>
+
+    <!-- Step 1: Select Classes for Preview -->
+    <div class="glass-card p-6 rounded-2xl border border-slate-200 bg-white shadow-xs space-y-4">
+        <h4 class="text-sm font-bold text-slate-900">Step 1: Select Source & Destination Classes</h4>
+        <form method="GET" action="{% url 'class_promote' %}" class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
+            <div>
+                <label class="block font-semibold text-slate-700 mb-1">Source Class (Current) *</label>
+                <select name="from_class_id" required class="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-slate-900 focus:ring-2 focus:ring-blue-600">
+                    <option value="">-- Select Source Class --</option>
+                    {% for c in classes %}
+                        <option value="{{ c.id }}" {% if from_class_id == c.id|stringformat:"i" %}selected{% endif %}>{{ c.name }} ({{ c.code }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div>
+                <label class="block font-semibold text-slate-700 mb-1">Destination Class (Promote To) *</label>
+                <select name="to_class_id" required class="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-slate-900 focus:ring-2 focus:ring-blue-600">
+                    <option value="">-- Select Destination Class --</option>
+                    {% for c in classes %}
+                        <option value="{{ c.id }}" {% if to_class_id == c.id|stringformat:"i" %}selected{% endif %}>{{ c.name }} ({{ c.code }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="flex items-end">
+                <button type="submit" class="w-full py-2.5 px-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs transition shadow-sm shadow-blue-500/20">
+                    Load Promotion Preview →
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Step 2: Preview & Execution Form -->
+    {% if preview %}
+    <form method="POST" action="{% url 'class_promote' %}" class="space-y-6">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="execute_promotion">
+        <input type="hidden" name="from_class_id" value="{{ from_class_id }}">
+        <input type="hidden" name="to_class_id" value="{{ to_class_id }}">
+
+        <!-- Destination Section Selection & Capacity Verification -->
+        <div class="glass-card p-6 rounded-2xl border border-blue-200 bg-blue-50/40 shadow-xs space-y-4">
+            <h4 class="text-sm font-bold text-slate-900">Step 2: Assign Destination Section & Check Capacities</h4>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Target Section in {{ preview.to_class.name }} *</label>
+                    <select name="target_section_id" required class="w-full px-3 py-2.5 bg-white border border-slate-300 rounded-xl text-slate-900 text-xs focus:ring-2 focus:ring-blue-600">
+                        <option value="">-- Choose Target Section --</option>
+                        {% for sc in preview.section_capacities %}
+                            <option value="{{ sc.section.id }}" {% if sc.is_full %}disabled{% endif %}>
+                                {{ sc.section.name }} — ({{ sc.enrolled }}/{{ sc.capacity }} filled, {{ sc.available }} seats remaining)
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="p-3 bg-white border border-blue-200 rounded-xl text-xs space-y-1">
+                    <p class="font-bold text-slate-800">Promotion Summary:</p>
+                    <p class="text-slate-600">Total active students in {{ preview.from_class.name }}: <strong>{{ preview.total_students }}</strong></p>
+                    <p class="text-[11px] text-slate-400">Uncheck any students below to hold them back in their current class.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Students Selection List (Hold-back / Skip Option) -->
+        <div class="glass-card p-6 rounded-2xl border border-slate-200 bg-white space-y-4 shadow-xs">
+            <div class="flex items-center justify-between">
+                <h4 class="text-sm font-bold text-slate-900">Step 3: Review Student List (Uncheck to Hold-Back)</h4>
+                <span class="text-xs text-slate-500 font-medium">{{ preview.students|length }} students eligible</span>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs text-slate-700">
+                    <thead class="bg-slate-50 text-slate-500 uppercase tracking-wider font-semibold border-b border-slate-200">
+                        <tr>
+                            <th class="px-4 py-3 w-16 text-center">Promote?</th>
+                            <th class="px-4 py-3">Adm #</th>
+                            <th class="px-4 py-3">Roll #</th>
+                            <th class="px-4 py-3">Student Name</th>
+                            <th class="px-4 py-3">Current Section</th>
+                            <th class="px-4 py-3">Action Note</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                        {% for s in preview.students %}
+                        <tr class="hover:bg-slate-50/60">
+                            <td class="px-4 py-3 text-center">
+                                <input type="checkbox" name="hold_back_ids" value="{{ s.id }}" class="rounded border-slate-300 text-rose-600 focus:ring-rose-500" title="Check this box to HOLD BACK / SKIP student from promotion">
+                            </td>
+                            <td class="px-4 py-3 font-mono font-bold text-blue-600">{{ s.admission_number }}</td>
+                            <td class="px-4 py-3 font-mono text-slate-700">{{ s.roll_number }}</td>
+                            <td class="px-4 py-3 font-semibold text-slate-900">{{ s.get_full_name }}</td>
+                            <td class="px-4 py-3">{{ s.section.name|default:"Unassigned" }}</td>
+                            <td class="px-4 py-3 text-slate-400 text-[11px]">Check box to hold back</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="px-4 py-6 text-center text-slate-400">No active students in selected class.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="pt-4 border-t border-slate-200 flex items-center justify-between">
+                <p class="text-xs text-slate-400">
+                    <i data-lucide="shield-check" class="w-4 h-4 inline text-emerald-600"></i> Safe execution: Snapshots are logged for 1-click rollback.
+                </p>
+                <button type="submit" onclick="return confirm('Confirm student promotion to destination class?');" class="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs transition shadow-sm shadow-emerald-500/20">
+                    Execute Bulk Promotion Now
+                </button>
+            </div>
+        </div>
+    </form>
+    {% endif %}
+
+    <!-- Rollback Section (Audit Log History) -->
+    {% if recent_promotions %}
+    <div class="glass-card p-6 rounded-2xl border border-slate-200 bg-white space-y-4 shadow-xs">
+        <h4 class="text-sm font-bold text-slate-900 flex items-center gap-2">
+            <i data-lucide="history" class="w-4 h-4 text-blue-600"></i> Recent Promotions & Rollback History
+        </h4>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs text-slate-700">
+                <thead class="bg-slate-50 text-slate-500 uppercase tracking-wider font-semibold border-b border-slate-200">
+                    <tr>
+                        <th class="px-3 py-2.5">Date & Time</th>
+                        <th class="px-3 py-2.5">User</th>
+                        <th class="px-3 py-2.5">From Class</th>
+                        <th class="px-3 py-2.5">To Class</th>
+                        <th class="px-3 py-2.5">Promoted Count</th>
+                        <th class="px-3 py-2.5">Status</th>
+                        <th class="px-3 py-2.5 text-right">Action</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    {% for p in recent_promotions %}
+                    <tr>
+                        <td class="px-3 py-2.5">{{ p.timestamp|date:"d-M-Y H:i" }}</td>
+                        <td class="px-3 py-2.5">{{ p.user.get_full_name|default:p.user.username }}</td>
+                        <td class="px-3 py-2.5">{{ p.changes.from_class_name }}</td>
+                        <td class="px-3 py-2.5">{{ p.changes.to_class_name }}</td>
+                        <td class="px-3 py-2.5 font-bold text-emerald-700">{{ p.changes.promoted_count }}</td>
+                        <td class="px-3 py-2.5">
+                            {% if p.changes.rolled_back %}
+                                <span class="px-2 py-0.5 text-[10px] bg-slate-100 text-slate-500 rounded-full border border-slate-200">Rolled Back</span>
+                            {% else %}
+                                <span class="px-2 py-0.5 text-[10px] bg-emerald-50 text-emerald-700 rounded-full border border-emerald-200">Active</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-3 py-2.5 text-right">
+                            {% if not p.changes.rolled_back %}
+                            <form method="POST" action="{% url 'class_promote_rollback' %}" onsubmit="return confirm('Are you sure you want to rollback this promotion session?');" class="inline">
+                                {% csrf_token %}
+                                <input type="hidden" name="audit_log_id" value="{{ p.id }}">
+                                <button type="submit" class="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-lg text-[11px] font-semibold transition">
+                                    Rollback Promotion
+                                </button>
+                            </form>
+                            {% else %}
+                            <span class="text-slate-400 text-xs">—</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+

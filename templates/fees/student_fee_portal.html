@@ -1,0 +1,103 @@
+{% extends 'base.html' %}
+
+{% block title %}My Fee Status — School Management System{% endblock %}
+{% block header_title %}Student Fee Portal & Challan Status{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Notice Banner: Pay at school / Coming soon -->
+    <div class="glass-card p-6 rounded-2xl border border-blue-200 bg-blue-50/60 shadow-xs flex flex-col md:flex-row items-center justify-between gap-4">
+        <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-xl bg-blue-600 text-white flex items-center justify-center flex-shrink-0 shadow-sm">
+                <i data-lucide="receipt" class="w-6 h-6"></i>
+            </div>
+            <div>
+                <h3 class="text-base font-bold text-slate-900">Student Fee Information</h3>
+                <p class="text-xs text-slate-600 mt-0.5">
+                    View active challans and payment history.
+                </p>
+            </div>
+        </div>
+
+        <div class="text-center md:text-right">
+            <span class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-100 text-amber-800 text-xs font-bold border border-amber-300">
+                <i data-lucide="clock" class="w-4 h-4"></i> Pay at school / Online Payment coming soon
+            </span>
+            <p class="text-[11px] text-slate-500 mt-1">Please deposit fee dues at the school accounts desk or designated bank branch.</p>
+        </div>
+    </div>
+
+    <!-- Student Cards / Overview -->
+    {% for s in students %}
+    <div class="glass-card p-6 rounded-2xl border border-slate-200 bg-white space-y-4 shadow-xs">
+        <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
+            <div>
+                <h4 class="text-base font-bold text-slate-900">{{ s.get_full_name }}</h4>
+                <p class="text-xs text-slate-500">Admission No: <strong class="text-slate-700 font-mono">{{ s.admission_number }}</strong> &bull; Class: {{ s.class_level.name }} - {{ s.section.name }} &bull; Roll: {{ s.roll_number }}</p>
+            </div>
+            <a href="{% url 'student_id_card_pdf' s.id %}" target="_blank" class="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-xl text-xs font-semibold border border-blue-200 flex items-center gap-1.5">
+                <i data-lucide="file-text" class="w-3.5 h-3.5"></i> Student ID Card
+            </a>
+        </div>
+
+        <!-- Challans Table for Student -->
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs text-slate-700">
+                <thead class="bg-slate-50 text-slate-500 uppercase tracking-wider font-semibold border-b border-slate-200">
+                    <tr>
+                        <th class="px-4 py-3">Challan #</th>
+                        <th class="px-4 py-3">Billing Month</th>
+                        <th class="px-4 py-3">Total Payable</th>
+                        <th class="px-4 py-3">Paid Amount</th>
+                        <th class="px-4 py-3">Remaining Balance</th>
+                        <th class="px-4 py-3">Due Date</th>
+                        <th class="px-4 py-3">Status</th>
+                        <th class="px-4 py-3 text-right">PDF Challan</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    {% for ch in challans %}
+                    {% if ch.student_id == s.id %}
+                    <tr class="hover:bg-blue-50/40 transition">
+                        <td class="px-4 py-3 font-mono font-bold text-blue-600">{{ ch.challan_no }}</td>
+                        <td class="px-4 py-3 font-medium">{{ ch.month }} {{ ch.year }}</td>
+                        <td class="px-4 py-3 font-bold text-slate-900">Rs. {{ ch.total|floatformat:0 }}</td>
+                        <td class="px-4 py-3 text-emerald-700 font-semibold">Rs. {{ ch.paid_amount|floatformat:0 }}</td>
+                        <td class="px-4 py-3 font-bold {% if ch.remaining_balance > 0 %}text-rose-600{% else %}text-slate-400{% endif %}">
+                            Rs. {{ ch.remaining_balance|floatformat:0 }}
+                        </td>
+                        <td class="px-4 py-3">{{ ch.due_date|date:"d-M-Y" }}</td>
+                        <td class="px-4 py-3">
+                            <span class="px-2.5 py-0.5 text-[10px] font-bold rounded-full uppercase
+                                {% if ch.status == 'Paid' %} bg-emerald-50 text-emerald-700 border border-emerald-200
+                                {% elif ch.status == 'Partial' %} bg-blue-50 text-blue-700 border border-blue-200
+                                {% else %} bg-rose-50 text-rose-700 border border-rose-200 {% endif %}">
+                                {{ ch.status }}
+                            </span>
+                        </td>
+                        <td class="px-4 py-3 text-right">
+                            <a href="{% url 'challan_pdf' ch.id %}" target="_blank" class="px-3 py-1 bg-white hover:bg-slate-50 text-blue-700 rounded-lg text-[11px] font-semibold border border-slate-200 shadow-2xs">
+                                Download Challan
+                            </a>
+                        </td>
+                    </tr>
+                    {% endif %}
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="px-4 py-6 text-center text-slate-400">No challans currently issued.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% empty %}
+    <div class="glass-card p-12 rounded-2xl border border-slate-200 bg-white text-center text-slate-400 space-y-2">
+        <i data-lucide="receipt" class="w-10 h-10 text-slate-300 mx-auto"></i>
+        <h4 class="text-base font-bold text-slate-700">No Student Profile Linked</h4>
+        <p class="text-xs">Your user account does not have an active student or ward profile registered.</p>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}
+

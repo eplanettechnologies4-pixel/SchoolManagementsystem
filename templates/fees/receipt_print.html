@@ -1,0 +1,88 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fee Payment Receipt #{{ payment.receipt_number }} — School Management System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @media print {
+            body { background: #fff !important; color: #000 !important; }
+            .no-print { display: none !important; }
+        }
+        body { font-family: 'Outfit', 'Segoe UI', sans-serif; background-color: #f8fafc; }
+    </style>
+</head>
+<body class="p-6 text-slate-800">
+    <div class="no-print max-w-2xl mx-auto mb-4 flex items-center justify-between bg-slate-900 text-white p-4 rounded-xl shadow-lg">
+        <div>
+            <h1 class="text-base font-bold">Printable Official Fee Receipt</h1>
+            <p class="text-xs text-slate-400">Receipt #{{ payment.receipt_number }}</p>
+        </div>
+        <button onclick="window.print()" class="px-4 py-2 bg-gradient-to-r from-[#ff8000] to-[#9ece38] text-slate-950 font-bold rounded-lg text-xs">
+            🖨️ Print Receipt
+        </button>
+    </div>
+
+    <div class="max-w-2xl mx-auto bg-white p-8 rounded-xl border-2 border-[#009688] shadow-md space-y-6">
+        <!-- Header -->
+        <div class="text-center border-b-2 border-slate-800 pb-4 space-y-1">
+            <h1 class="text-xl font-extrabold uppercase text-[#1b1b6f]">School Management System</h1>
+            <p class="text-xs text-slate-600">Main Campus, Education City • Contact: +92 42 35551234</p>
+            <span class="inline-block mt-2 px-3 py-1 bg-[#009688] text-white font-bold text-xs rounded uppercase">Official Payment Receipt</span>
+        </div>
+
+        <!-- Receipt Details Table -->
+        <table class="w-full text-xs border-collapse border border-slate-300">
+            <tr class="bg-slate-100">
+                <th class="border border-slate-300 p-2 text-left font-bold text-slate-700">Receipt #:</th>
+                <td class="border border-slate-300 p-2 font-mono font-bold text-[#ff8000]">{{ payment.receipt_number }}</td>
+                <th class="border border-slate-300 p-2 text-left font-bold text-slate-700">Payment Date:</th>
+                <td class="border border-slate-300 p-2 font-mono">{{ payment.payment_date|date:"d-M-Y" }}</td>
+            </tr>
+            <tr>
+                <th class="border border-slate-300 p-2 text-left font-bold text-slate-700">Voucher #:</th>
+                <td class="border border-slate-300 p-2 font-mono">{{ payment.voucher.voucher_number }}</td>
+                <th class="border border-slate-300 p-2 text-left font-bold text-slate-700">Billing Month:</th>
+                <td class="border border-slate-300 p-2">{{ payment.voucher.billing_month }}</td>
+            </tr>
+            <tr class="bg-slate-100">
+                <th class="border border-slate-300 p-2 text-left font-bold text-slate-700">Student Name:</th>
+                <td class="border border-slate-300 p-2 font-bold">{{ payment.voucher.student.get_full_name }}</td>
+                <th class="border border-slate-300 p-2 text-left font-bold text-slate-700">Admission No:</th>
+                <td class="border border-slate-300 p-2 font-mono">{{ payment.voucher.student.admission_number }}</td>
+            </tr>
+            <tr>
+                <th class="border border-slate-300 p-2 text-left font-bold text-slate-700">Class & Section:</th>
+                <td class="border border-slate-300 p-2">{{ payment.voucher.student.class_level.name }} - {{ payment.voucher.student.section.name }}</td>
+                <th class="border border-slate-300 p-2 text-left font-bold text-slate-700">Payment Method:</th>
+                <td class="border border-slate-300 p-2 font-semibold">{{ payment.get_payment_method_display }}</td>
+            </tr>
+            <tr class="bg-emerald-50">
+                <th class="border border-slate-300 p-2.5 text-left font-bold text-emerald-900 text-sm">AMOUNT RECEIVED:</th>
+                <td class="border border-slate-300 p-2.5 font-bold text-emerald-700 text-sm font-mono">Rs. {{ payment.amount_paid|floatformat:2 }}</td>
+                <th class="border border-slate-300 p-2.5 text-left font-bold text-slate-700">Remaining Balance:</th>
+                <td class="border border-slate-300 p-2.5 font-bold font-mono text-amber-700">Rs. {{ payment.voucher.remaining_balance|floatformat:2 }}</td>
+            </tr>
+            <tr>
+                <th class="border border-slate-300 p-2 text-left font-bold text-slate-700">Txn / Ref #:</th>
+                <td class="border border-slate-300 p-2 font-mono">{{ payment.transaction_reference|default:"N/A" }}</td>
+                <th class="border border-slate-300 p-2 text-left font-bold text-slate-700">Received By:</th>
+                <td class="border border-slate-300 p-2">{{ payment.received_by.get_full_name|default:"Cashier" }}</td>
+            </tr>
+        </table>
+
+        <!-- Footer Stamp -->
+        <div class="pt-12 flex justify-between text-xs font-semibold text-slate-600">
+            <div>
+                <p>Status: <span class="text-emerald-700 font-bold">✓ PAYMENT VERIFIED & ACKNOWLEDGED</span></p>
+                <p class="text-[10px] text-slate-500 mt-1">Thank you for your payment.</p>
+            </div>
+            <div class="text-center">
+                <p>___________________________</p>
+                <p class="text-[10px] text-slate-500 mt-1">Accounts Officer Stamp & Signature</p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

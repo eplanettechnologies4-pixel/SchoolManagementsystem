@@ -1,0 +1,255 @@
+{% extends 'base.html' %}
+{% load i18n %}
+
+{% block title %}{% trans "Salary Slip" %} {{ slip.slip_number }} — School Management System{% endblock %}
+{% block header_title %}{% trans "Salary Slip Details" %}{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto space-y-6" x-data="{ showPayModal: false }">
+    <!-- Top Nav & Actions -->
+    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div class="flex items-center gap-3">
+            <a href="{% if is_management %}{% url 'staff_payroll_dashboard' %}?month={{ slip.month }}&year={{ slip.year }}{% else %}{% url 'staff_dashboard' %}{% endif %}" class="p-2 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 text-slate-600 transition">
+                <i data-lucide="arrow-left" class="w-4 h-4"></i>
+            </a>
+            <div>
+                <h3 class="text-xl font-bold text-slate-900 flex items-center gap-2">
+                    {{ slip.staff.get_full_name }}
+                    <span class="text-xs font-mono font-normal text-slate-500">({{ slip.staff.employee_id }})</span>
+                </h3>
+                <p class="text-xs text-slate-500">
+                    {% trans "Salary Slip" %} <span class="font-mono font-semibold">{{ slip.slip_number }}</span> • {{ slip.month }}/{{ slip.year }}
+                </p>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+            <a href="{% url 'salary_slip_pdf' slip.id %}" target="_blank" class="px-4 py-2 bg-slate-900 hover:bg-black text-white text-xs font-semibold rounded-xl inline-flex items-center gap-1.5 shadow-sm transition">
+                <i data-lucide="printer" class="w-4 h-4"></i>
+                {% trans "Print / Download PDF" %}
+            </a>
+            {% if is_management and slip.status != 'PAID' %}
+            <button @click="showPayModal = true" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-xl inline-flex items-center gap-1.5 shadow-sm transition">
+                <i data-lucide="check-circle" class="w-4 h-4"></i>
+                {% trans "Mark as Paid" %}
+            </button>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Status & Overview Bar -->
+    <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div class="space-y-1">
+            <span class="text-xs font-medium text-slate-500 uppercase tracking-wider block">{% trans "Payment Status" %}</span>
+            <div class="flex items-center gap-3">
+                {% if slip.status == 'PAID' %}
+                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-600 mr-1.5"></span>
+                    {% trans "PAID / DISBURSED" %}
+                </span>
+                <span class="text-xs text-slate-500">
+                    {% trans "Paid on" %} {{ slip.payment_date|date:"F d, Y" }} via {{ slip.get_payment_method_display }} (Ref: {{ slip.transaction_reference }})
+                </span>
+                {% elif slip.status == 'CANCELLED' %}
+                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-800">
+                    {% trans "CANCELLED" %}
+                </span>
+                {% else %}
+                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800">
+                    <span class="w-1.5 h-1.5 rounded-full bg-amber-600 mr-1.5"></span>
+                    {% trans "GENERATED / AWAITING DISBURSEMENT" %}
+                </span>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="grid grid-cols-2 sm:grid-cols-3 gap-4 border-t md:border-t-0 md:border-l border-slate-100 pt-4 md:pt-0 md:pl-6 text-xs">
+            <div>
+                <span class="text-slate-400 block">{% trans "Designation" %}</span>
+                <span class="font-semibold text-slate-900">{{ slip.staff.designation }}</span>
+            </div>
+            <div>
+                <span class="text-slate-400 block">{% trans "Bank Account" %}</span>
+                <span class="font-semibold text-slate-900">{{ slip.staff.bank_name|default:"N/A" }}</span>
+                <span class="text-[10px] text-slate-500 font-mono block">{{ slip.staff.bank_account_number|default:"" }}</span>
+            </div>
+            <div>
+                <span class="text-slate-400 block">{% trans "Late Policy" %}</span>
+                <span class="font-semibold text-slate-900">{{ slip.staff.get_late_deduction_policy_display }}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Attendance Metrics Row -->
+    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+        <div class="bg-white p-4 rounded-xl border border-slate-200 text-center">
+            <span class="text-[11px] text-slate-500 font-medium block">{% trans "Total Days" %}</span>
+            <div class="text-xl font-bold text-slate-900 mt-1">{{ slip.total_days }}</div>
+        </div>
+        <div class="bg-white p-4 rounded-xl border border-emerald-100 bg-emerald-50/20 text-center">
+            <span class="text-[11px] text-emerald-600 font-medium block">{% trans "Present" %}</span>
+            <div class="text-xl font-bold text-emerald-700 mt-1">{{ slip.present_days }}</div>
+        </div>
+        <div class="bg-white p-4 rounded-xl border border-rose-100 bg-rose-50/20 text-center">
+            <span class="text-[11px] text-rose-600 font-medium block">{% trans "Absent Days" %}</span>
+            <div class="text-xl font-bold text-rose-700 mt-1">{{ slip.absent_days }}</div>
+        </div>
+        <div class="bg-white p-4 rounded-xl border border-amber-100 bg-amber-50/20 text-center">
+            <span class="text-[11px] text-amber-600 font-medium block">{% trans "Late Count" %}</span>
+            <div class="text-xl font-bold text-amber-700 mt-1">{{ slip.late_count }}</div>
+        </div>
+        <div class="bg-white p-4 rounded-xl border border-slate-200 text-center">
+            <span class="text-[11px] text-slate-500 font-medium block">{% trans "Total Leaves" %}</span>
+            <div class="text-xl font-bold text-slate-900 mt-1">{{ slip.leave_days }}</div>
+        </div>
+        <div class="bg-white p-4 rounded-xl border border-red-200 bg-red-50/20 text-center">
+            <span class="text-[11px] text-red-600 font-medium block">{% trans "Unpaid Leaves" %}</span>
+            <div class="text-xl font-bold text-red-700 mt-1">{{ slip.unpaid_leave_days }}</div>
+        </div>
+    </div>
+
+    <!-- Detailed Earnings vs Deductions Breakdown -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Earnings Section -->
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <h4 class="text-sm font-bold text-slate-900 flex items-center gap-2">
+                    <i data-lucide="trending-up" class="w-4 h-4 text-emerald-600"></i>
+                    {% trans "Earnings & Allowances" %}
+                </h4>
+                <span class="text-xs text-slate-400">PKR</span>
+            </div>
+
+            <div class="space-y-3 text-xs">
+                <div class="flex justify-between items-center py-1">
+                    <span class="text-slate-600">{% trans "Basic Salary" %}</span>
+                    <span class="font-semibold text-slate-900">PKR {{ slip.basic_salary|floatformat:2 }}</span>
+                </div>
+                <div class="flex justify-between items-center py-1">
+                    <span class="text-slate-600">{% trans "Allowances (House/Conveyance)" %}</span>
+                    <span class="font-semibold text-slate-900">PKR {{ slip.allowances|floatformat:2 }}</span>
+                </div>
+                <div class="flex justify-between items-center py-1">
+                    <span class="text-slate-600">{% trans "Bonus & Incentives" %}</span>
+                    <span class="font-semibold text-slate-900">PKR {{ slip.bonus|floatformat:2 }}</span>
+                </div>
+            </div>
+
+            <div class="border-t border-slate-200 pt-3 flex justify-between items-center text-xs font-bold">
+                <span class="text-slate-800">{% trans "TOTAL GROSS EARNINGS" %}</span>
+                <span class="text-slate-900 text-sm">PKR {{ slip.gross_salary|floatformat:2 }}</span>
+            </div>
+        </div>
+
+        <!-- Deductions Section -->
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <h4 class="text-sm font-bold text-slate-900 flex items-center gap-2">
+                    <i data-lucide="trending-down" class="w-4 h-4 text-rose-600"></i>
+                    {% trans "Deductions & Penalties" %}
+                </h4>
+                <span class="text-xs text-rose-500 font-semibold">{% trans "Cuts" %}</span>
+            </div>
+
+            <div class="space-y-3 text-xs">
+                <div class="flex justify-between items-center py-1">
+                    <div>
+                        <span class="text-slate-600 block">{% trans "Absent Days Cut" %}</span>
+                        <span class="text-[10px] text-slate-400">{{ slip.absent_days }} absent days / half days</span>
+                    </div>
+                    <span class="font-semibold text-rose-600">- PKR {{ slip.absent_deduction|floatformat:2 }}</span>
+                </div>
+                <div class="flex justify-between items-center py-1">
+                    <div>
+                        <span class="text-slate-600 block">{% trans "Unpaid Leave Cut" %}</span>
+                        <span class="text-[10px] text-slate-400">{{ slip.unpaid_leave_days }} days exceeding quota</span>
+                    </div>
+                    <span class="font-semibold text-rose-600">- PKR {{ slip.leave_deduction|floatformat:2 }}</span>
+                </div>
+                <div class="flex justify-between items-center py-1">
+                    <div>
+                        <span class="text-slate-600 block">{% trans "Late Arrival Penalty" %}</span>
+                        <span class="text-[10px] text-slate-400">{{ slip.late_count }} late check-ins</span>
+                    </div>
+                    <span class="font-semibold text-rose-600">- PKR {{ slip.late_deduction|floatformat:2 }}</span>
+                </div>
+                <div class="flex justify-between items-center py-1">
+                    <span class="text-slate-600">{% trans "Income Tax" %}</span>
+                    <span class="font-semibold text-rose-600">- PKR {{ slip.tax_deduction|floatformat:2 }}</span>
+                </div>
+                <div class="flex justify-between items-center py-1">
+                    <span class="text-slate-600">{% trans "Other Advance / Loan" %}</span>
+                    <span class="font-semibold text-rose-600">- PKR {{ slip.other_deductions|floatformat:2 }}</span>
+                </div>
+            </div>
+
+            <div class="border-t border-slate-200 pt-3 flex justify-between items-center text-xs font-bold">
+                <span class="text-rose-700">{% trans "TOTAL DEDUCTIONS" %}</span>
+                <span class="text-rose-600 text-sm">- PKR {{ slip.total_deductions|floatformat:2 }}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Net Salary Highlight Card -->
+    <div class="bg-gradient-to-r from-blue-700 to-indigo-800 rounded-2xl p-6 text-white shadow-md flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div>
+            <span class="text-xs uppercase font-semibold text-blue-200 tracking-wider block">{% trans "Net Payable Monthly Salary" %}</span>
+            <div class="text-3xl font-black mt-1">PKR {{ slip.net_salary|floatformat:2 }}</div>
+            <p class="text-xs text-blue-100/80 mt-1">{% trans "Calculated Net Amount = (Gross Earnings) - (Total Deductions & Penalties)" %}</p>
+        </div>
+
+        {% if is_management and slip.status != 'PAID' %}
+        <button @click="showPayModal = true" class="px-5 py-2.5 bg-white text-blue-800 hover:bg-blue-50 font-bold rounded-xl text-xs shadow-lg transition">
+            {% trans "Disburse Salary Now" %}
+        </button>
+        {% endif %}
+    </div>
+
+    <!-- Mark as Paid Modal -->
+    {% if is_management %}
+    <div x-show="showPayModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+        <div @click.away="showPayModal = false" class="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl border border-slate-200 space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <h4 class="text-base font-bold text-slate-900 flex items-center gap-2">
+                    <i data-lucide="check-circle" class="w-5 h-5 text-emerald-600"></i>
+                    {% trans "Disburse Salary & Mark Paid" %}
+                </h4>
+                <button @click="showPayModal = false" class="text-slate-400 hover:text-slate-600">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <p class="text-xs text-slate-500">
+                {% trans "Record disbursement of net salary" %} <b>PKR {{ slip.net_salary|floatformat:2 }}</b> {% trans "to" %} <b>{{ slip.staff.get_full_name }}</b>.
+            </p>
+
+            <form method="POST" action="{% url 'salary_slip_pay' slip.id %}" class="space-y-4">
+                {% csrf_token %}
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">{% trans "Payment Method" %}</label>
+                    {{ pay_form.payment_method }}
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">{% trans "Transaction / Cheque Reference" %}</label>
+                    {{ pay_form.transaction_reference }}
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">{% trans "Remarks" %}</label>
+                    {{ pay_form.remarks }}
+                </div>
+
+                <div class="flex items-center justify-end gap-2 pt-2">
+                    <button type="button" @click="showPayModal = false" class="px-4 py-2 border border-slate-300 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-50">
+                        {% trans "Cancel" %}
+                    </button>
+                    <button type="submit" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold transition">
+                        {% trans "Confirm Disbursement" %}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+

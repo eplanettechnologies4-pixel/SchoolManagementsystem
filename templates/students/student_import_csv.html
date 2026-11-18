@@ -1,0 +1,82 @@
+{% extends 'base.html' %}
+{% load i18n %}
+
+{% block title %}{% trans "Bulk Student Import" %} — School Management System{% endblock %}
+{% block header_title %}{% trans "Bulk Student Import (CSV/Excel)" %}{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto space-y-6">
+    <div class="flex items-center justify-between">
+        <div>
+            <h3 class="text-lg font-bold text-slate-900">{% trans "Batch Student Registration" %}</h3>
+            <p class="text-xs text-slate-500">{% trans "Upload a formatted CSV file to import multiple students at once." %}</p>
+        </div>
+        <a href="{% url 'student_list' %}" class="px-4 py-2 border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-semibold rounded-xl inline-flex items-center gap-1.5 transition">
+            <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i> {% trans "Back to Student List" %}
+        </a>
+    </div>
+
+    <!-- Upload Card -->
+    <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-4">
+        <h4 class="text-sm font-bold text-blue-700 uppercase tracking-wider flex items-center gap-2">
+            <i data-lucide="upload" class="w-4 h-4"></i> {% trans "Select CSV File" %}
+        </h4>
+
+        <form method="POST" enctype="multipart/form-data" class="space-y-4">
+            {% csrf_token %}
+            <div>
+                <input type="file" name="csv_file" accept=".csv" required class="w-full text-xs text-slate-600 file:mr-4 file:py-2.5 file:px-5 file:rounded-xl file:border-0 file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 border border-slate-300 rounded-xl bg-white cursor-pointer">
+            </div>
+
+            <div class="p-4 bg-slate-50 border border-slate-200 rounded-xl text-xs space-y-2">
+                <p class="font-semibold text-slate-800">{% trans "Required CSV Columns" %}:</p>
+                <p class="font-mono text-slate-600 text-[11px]">first_name, last_name, bform_number, dob (YYYY-MM-DD), gender (MALE/FEMALE), class_name, section_name, guardian_name, guardian_cnic, guardian_phone, emergency_contact, address</p>
+                <p class="text-slate-500 text-[11px]">{% trans "Tip: Duplicate B-Form numbers will be flagged, and guardian CNICs will automatically link siblings." %}</p>
+            </div>
+
+            <button type="submit" class="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl inline-flex items-center gap-2 shadow-sm transition">
+                <i data-lucide="upload-cloud" class="w-4 h-4"></i> {% trans "Upload & Process Import" %}
+            </button>
+        </form>
+    </div>
+
+    <!-- Import Results Report -->
+    {% if report %}
+        <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-4">
+            <h4 class="text-sm font-bold text-slate-900 flex items-center gap-2">
+                <i data-lucide="file-check" class="w-4 h-4 text-emerald-600"></i> {% trans "Import Validation Report" %}
+            </h4>
+
+            <div class="grid grid-cols-2 md:grid-cols-3 gap-4 text-xs">
+                <div class="p-3 bg-emerald-50 border border-emerald-200 rounded-xl">
+                    <span class="text-emerald-700 block">{% trans "Successfully Created" %}</span>
+                    <strong class="text-xl font-bold text-emerald-800">{{ report.success_count }}</strong>
+                </div>
+                <div class="p-3 bg-red-50 border border-red-200 rounded-xl">
+                    <span class="text-red-700 block">{% trans "Failed / Skipped Rows" %}</span>
+                    <strong class="text-xl font-bold text-red-800">{{ report.errors|length }}</strong>
+                </div>
+                <div class="p-3 bg-blue-50 border border-blue-200 rounded-xl">
+                    <span class="text-blue-700 block">{% trans "Total Processed" %}</span>
+                    <strong class="text-xl font-bold text-blue-800">{{ report.total_processed }}</strong>
+                </div>
+            </div>
+
+            {% if report.errors %}
+                <div class="space-y-2 pt-2">
+                    <h5 class="text-xs font-bold text-red-700">{% trans "Row-Level Errors" %}:</h5>
+                    <div class="max-h-64 overflow-y-auto border border-red-200 rounded-xl divide-y divide-red-100 bg-red-50/50 text-xs">
+                        {% for err in report.errors %}
+                            <div class="p-2.5 flex items-start gap-2">
+                                <span class="px-1.5 py-0.5 bg-red-200 text-red-800 rounded font-mono text-[10px]">Row {{ err.row }}</span>
+                                <span class="text-red-700">{{ err.error }}</span>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
+

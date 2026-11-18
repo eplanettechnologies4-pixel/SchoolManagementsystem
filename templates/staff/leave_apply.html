@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+{% load i18n %}
+
+{% block title %}{% trans "Apply for Leave" %} — School Management System{% endblock %}
+{% block header_title %}{% trans "Submit Staff Leave Application" %}{% endblock %}
+
+{% block content %}
+<div class="max-w-xl mx-auto space-y-6">
+    <div class="flex items-center justify-between">
+        <div>
+            <h3 class="text-lg font-bold text-slate-900">{% trans "Staff Leave Request" %}</h3>
+            <p class="text-xs text-slate-500">{% trans "Formal leave application to administration." %}</p>
+        </div>
+        <a href="{% url 'staff_dashboard' %}" class="px-4 py-2 border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-semibold rounded-xl inline-flex items-center gap-1.5 transition">
+            <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i> {% trans "Back to Portal" %}
+        </a>
+    </div>
+
+    <form method="POST" class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-4">
+        {% csrf_token %}
+
+        <div class="text-xs space-y-1">
+            <label class="block font-medium text-slate-700">{{ form.leave_type.label }} *</label>
+            {{ form.leave_type }}
+            {% if form.leave_type.errors %}<p class="text-xs text-red-600">{{ form.leave_type.errors.0 }}</p>{% endif %}
+        </div>
+
+        <div class="grid grid-cols-2 gap-4 text-xs">
+            <div class="space-y-1">
+                <label class="block font-medium text-slate-700">{{ form.from_date.label }} *</label>
+                {{ form.from_date }}
+                {% if form.from_date.errors %}<p class="text-xs text-red-600">{{ form.from_date.errors.0 }}</p>{% endif %}
+            </div>
+            <div class="space-y-1">
+                <label class="block font-medium text-slate-700">{{ form.to_date.label }} *</label>
+                {{ form.to_date }}
+                {% if form.to_date.errors %}<p class="text-xs text-red-600">{{ form.to_date.errors.0 }}</p>{% endif %}
+            </div>
+        </div>
+
+        <div class="text-xs space-y-1">
+            <label class="block font-medium text-slate-700">{{ form.reason.label }} *</label>
+            {{ form.reason }}
+            {% if form.reason.errors %}<p class="text-xs text-red-600">{{ form.reason.errors.0 }}</p>{% endif %}
+        </div>
+
+        <div class="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
+            <a href="{% url 'staff_dashboard' %}" class="px-4 py-2 border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-semibold rounded-xl transition">
+                {% trans "Cancel" %}
+            </a>
+            <button type="submit" class="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl inline-flex items-center gap-2 shadow-sm transition">
+                <i data-lucide="send" class="w-4 h-4"></i> {% trans "Submit Application" %}
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}
+

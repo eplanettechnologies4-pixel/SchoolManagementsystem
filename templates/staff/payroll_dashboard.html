@@ -1,0 +1,276 @@
+{% extends 'base.html' %}
+{% load i18n %}
+
+{% block title %}{% trans "Staff Payroll & Deductions" %} — School Management System{% endblock %}
+{% block header_title %}{% trans "Staff Payroll & Salary Deductions" %}{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto space-y-6" x-data="{ showGenModal: false }">
+    <!-- Top Action Bar -->
+    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div>
+            <h3 class="text-xl font-bold text-slate-900 flex items-center gap-2">
+                <i data-lucide="wallet" class="w-6 h-6 text-blue-600"></i>
+                {% trans "Staff Payroll & Salary Deductions" %}
+            </h3>
+            <p class="text-xs text-slate-500 mt-0.5">
+                {% trans "Automated monthly salary calculation with absent days, late penalties, and leave deductions." %}
+            </p>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-2">
+            <!-- Filter by Month and Year -->
+            <form method="GET" class="flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl border border-slate-300 shadow-sm">
+                <select name="month" class="text-xs font-semibold text-slate-700 bg-transparent border-0 focus:ring-0 py-0 pl-0 pr-6">
+                    <option value="1" {% if month == 1 %}selected{% endif %}>January</option>
+                    <option value="2" {% if month == 2 %}selected{% endif %}>February</option>
+                    <option value="3" {% if month == 3 %}selected{% endif %}>March</option>
+                    <option value="4" {% if month == 4 %}selected{% endif %}>April</option>
+                    <option value="5" {% if month == 5 %}selected{% endif %}>May</option>
+                    <option value="6" {% if month == 6 %}selected{% endif %}>June</option>
+                    <option value="7" {% if month == 7 %}selected{% endif %}>July</option>
+                    <option value="8" {% if month == 8 %}selected{% endif %}>August</option>
+                    <option value="9" {% if month == 9 %}selected{% endif %}>September</option>
+                    <option value="10" {% if month == 10 %}selected{% endif %}>October</option>
+                    <option value="11" {% if month == 11 %}selected{% endif %}>November</option>
+                    <option value="12" {% if month == 12 %}selected{% endif %}>December</option>
+                </select>
+                <input type="number" name="year" value="{{ year }}" class="w-16 text-xs font-semibold text-slate-700 bg-transparent border-0 focus:ring-0 py-0 px-1" />
+                <button type="submit" class="px-2.5 py-1 bg-slate-900 text-white rounded-lg text-xs font-medium hover:bg-black transition">
+                    {% trans "Filter" %}
+                </button>
+            </form>
+
+            <!-- Generate Payroll Button -->
+            <button @click="showGenModal = true" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl inline-flex items-center gap-1.5 shadow-sm transition">
+                <i data-lucide="calculator" class="w-4 h-4"></i>
+                {% trans "Generate Monthly Payroll" %}
+            </button>
+        </div>
+    </div>
+
+    <!-- KPI Metrics Cards -->
+    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+        <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+            <span class="text-xs font-medium text-slate-500 block">{% trans "Active Slips" %}</span>
+            <div class="text-2xl font-bold text-slate-900 mt-1">{{ total_slips }}</div>
+            <span class="text-[10px] text-slate-400">{% trans "For" %} {{ month }}/{{ year }}</span>
+        </div>
+        <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+            <span class="text-xs font-medium text-slate-600 block">{% trans "Gross Payroll" %}</span>
+            <div class="text-2xl font-bold text-slate-900 mt-1">PKR {{ total_gross|floatformat:0 }}</div>
+            <span class="text-[10px] text-slate-400">{% trans "Base + Allowances" %}</span>
+        </div>
+        <div class="bg-white p-4 rounded-2xl border border-rose-200 bg-rose-50/20 shadow-sm">
+            <span class="text-xs font-medium text-rose-600 block">{% trans "Total Deductions" %}</span>
+            <div class="text-2xl font-bold text-rose-700 mt-1">- PKR {{ total_deductions|floatformat:0 }}</div>
+            <span class="text-[10px] text-rose-500">{% trans "Absent, Late, Leave cuts" %}</span>
+        </div>
+        <div class="bg-white p-4 rounded-2xl border border-blue-200 bg-blue-50/20 shadow-sm">
+            <span class="text-xs font-medium text-blue-600 block">{% trans "Net Payable" %}</span>
+            <div class="text-2xl font-bold text-blue-700 mt-1">PKR {{ total_net|floatformat:0 }}</div>
+            <span class="text-[10px] text-blue-500">{% trans "Total monthly liability" %}</span>
+        </div>
+        <div class="bg-white p-4 rounded-2xl border border-emerald-200 bg-emerald-50/20 shadow-sm">
+            <span class="text-xs font-medium text-emerald-600 block">{% trans "Disbursed / Paid" %}</span>
+            <div class="text-2xl font-bold text-emerald-700 mt-1">PKR {{ total_paid|floatformat:0 }}</div>
+            <span class="text-[10px] text-emerald-600">{{ paid_count }} paid, {{ pending_count }} pending</span>
+        </div>
+    </div>
+
+    <!-- Table Filter & Search Controls -->
+    <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+        <form method="GET" class="flex flex-col sm:flex-row items-center justify-between gap-3">
+            <input type="hidden" name="month" value="{{ month }}">
+            <input type="hidden" name="year" value="{{ year }}">
+
+            <div class="relative w-full sm:w-80">
+                <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3 top-2.5"></i>
+                <input type="text" name="q" value="{{ search_q }}" placeholder="{% trans 'Search by staff name, ID or slip...' %}" class="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-900 focus:bg-white focus:ring-2 focus:ring-blue-600">
+            </div>
+
+            <div class="flex items-center gap-2 w-full sm:w-auto">
+                <select name="status" onchange="this.form.submit()" class="px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium text-slate-700 focus:ring-2 focus:ring-blue-600">
+                    <option value="ALL" {% if status_filter == 'ALL' %}selected{% endif %}>{% trans "All Statuses" %}</option>
+                    {% for code, label in status_choices %}
+                    <option value="{{ code }}" {% if status_filter == code %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+                <button type="submit" class="px-4 py-2 bg-slate-900 text-white rounded-xl text-xs font-semibold hover:bg-black transition">
+                    {% trans "Search" %}
+                </button>
+            </div>
+        </form>
+
+        <!-- Salary Slips Table -->
+        <div class="overflow-x-auto rounded-xl border border-slate-200">
+            <table class="w-full text-left text-xs border-collapse">
+                <thead class="bg-slate-50 text-slate-600 uppercase text-[10px] font-bold border-b border-slate-200">
+                    <tr>
+                        <th class="py-3 px-4">{% trans "Slip / Employee" %}</th>
+                        <th class="py-3 px-3">{% trans "Designation" %}</th>
+                        <th class="py-3 px-3 text-center">{% trans "Attendance Summary" %}</th>
+                        <th class="py-3 px-3 text-right">{% trans "Gross Salary" %}</th>
+                        <th class="py-3 px-3 text-right">{% trans "Deductions" %}</th>
+                        <th class="py-3 px-3 text-right">{% trans "Net Payable" %}</th>
+                        <th class="py-3 px-3 text-center">{% trans "Status" %}</th>
+                        <th class="py-3 px-4 text-right">{% trans "Actions" %}</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 text-slate-700">
+                    {% for slip in page_obj %}
+                    <tr class="hover:bg-slate-50/80 transition">
+                        <td class="py-3 px-4">
+                            <div class="flex items-center gap-2.5">
+                                <div class="w-8 h-8 rounded-full bg-blue-100 text-blue-700 font-bold flex items-center justify-center text-xs">
+                                    {{ slip.staff.user.first_name|first|upper }}{{ slip.staff.user.last_name|first|upper }}
+                                </div>
+                                <div>
+                                    <a href="{% url 'salary_slip_detail' slip.id %}" class="font-bold text-slate-900 hover:text-blue-600">
+                                        {{ slip.staff.get_full_name }}
+                                    </a>
+                                    <div class="text-[10px] text-slate-400 font-mono">
+                                        {{ slip.slip_number }} • {{ slip.staff.employee_id }}
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="py-3 px-3">
+                            <div class="font-medium text-slate-900">{{ slip.staff.designation }}</div>
+                            <div class="text-[10px] text-slate-400">{{ slip.staff.department|default:"Academics" }}</div>
+                        </td>
+                        <td class="py-3 px-3 text-center">
+                            <div class="inline-flex items-center gap-1.5 text-[11px]">
+                                <span class="px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 font-medium" title="Present days">
+                                    {{ slip.present_days }}P
+                                </span>
+                                {% if slip.absent_days > 0 %}
+                                <span class="px-1.5 py-0.5 rounded bg-rose-50 text-rose-700 font-bold" title="Absent days">
+                                    {{ slip.absent_days }}A
+                                </span>
+                                {% endif %}
+                                {% if slip.late_count > 0 %}
+                                <span class="px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 font-medium" title="Late arrivals">
+                                    {{ slip.late_count }}L
+                                </span>
+                                {% endif %}
+                                {% if slip.unpaid_leave_days > 0 %}
+                                <span class="px-1.5 py-0.5 rounded bg-red-100 text-red-800 font-bold" title="Unpaid leaves">
+                                    {{ slip.unpaid_leave_days }}UL
+                                </span>
+                                {% endif %}
+                            </div>
+                        </td>
+                        <td class="py-3 px-3 text-right font-medium">
+                            PKR {{ slip.gross_salary|floatformat:2 }}
+                        </td>
+                        <td class="py-3 px-3 text-right font-semibold text-rose-600">
+                            - PKR {{ slip.total_deductions|floatformat:2 }}
+                        </td>
+                        <td class="py-3 px-3 text-right font-bold text-blue-700">
+                            PKR {{ slip.net_salary|floatformat:2 }}
+                        </td>
+                        <td class="py-3 px-3 text-center">
+                            {% if slip.status == 'PAID' %}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
+                                {% trans "PAID" %}
+                            </span>
+                            {% elif slip.status == 'CANCELLED' %}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-800">
+                                {% trans "CANCELLED" %}
+                            </span>
+                            {% else %}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800">
+                                {% trans "GENERATED" %}
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td class="py-3 px-4 text-right">
+                            <div class="flex items-center justify-end gap-1.5">
+                                <a href="{% url 'salary_slip_detail' slip.id %}" class="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition" title="View Details">
+                                    <i data-lucide="eye" class="w-4 h-4"></i>
+                                </a>
+                                <a href="{% url 'salary_slip_pdf' slip.id %}" target="_blank" class="p-1.5 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition" title="Print PDF Payslip">
+                                    <i data-lucide="printer" class="w-4 h-4"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="py-8 text-center text-slate-400">
+                            <i data-lucide="inbox" class="w-8 h-8 mx-auto text-slate-300 mb-2"></i>
+                            <p class="font-medium">{% trans "No salary slips generated for this period." %}</p>
+                            <p class="text-xs text-slate-400 mt-1">{% trans "Click 'Generate Monthly Payroll' above to calculate automated payroll for all active staff." %}</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        {% if page_obj.has_other_pages %}
+        <div class="flex items-center justify-between pt-3 border-t border-slate-100 text-xs">
+            <span class="text-slate-500">
+                {% trans "Page" %} {{ page_obj.number }} {% trans "of" %} {{ page_obj.paginator.num_pages }}
+            </span>
+            <div class="flex items-center gap-1">
+                {% if page_obj.has_previous %}
+                <a href="?page={{ page_obj.previous_page_number }}&month={{ month }}&year={{ year }}&q={{ search_q }}&status={{ status_filter }}" class="px-2.5 py-1 bg-white border border-slate-200 rounded-lg hover:bg-slate-50">{% trans "Previous" %}</a>
+                {% endif %}
+                {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}&month={{ month }}&year={{ year }}&q={{ search_q }}&status={{ status_filter }}" class="px-2.5 py-1 bg-white border border-slate-200 rounded-lg hover:bg-slate-50">{% trans "Next" %}</a>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Generate Monthly Payroll Modal -->
+    <div x-show="showGenModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+        <div @click.away="showGenModal = false" class="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl border border-slate-200 space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <h4 class="text-base font-bold text-slate-900 flex items-center gap-2">
+                    <i data-lucide="calculator" class="w-5 h-5 text-blue-600"></i>
+                    {% trans "Run Monthly Payroll" %}
+                </h4>
+                <button @click="showGenModal = false" class="text-slate-400 hover:text-slate-600">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <p class="text-xs text-slate-500">
+                {% trans "This will automatically calculate absent cuts, late arrival penalties, and unpaid leave deductions for all active staff for the selected month." %}
+            </p>
+
+            <form method="POST" action="{% url 'payroll_generate_action' %}" class="space-y-4">
+                {% csrf_token %}
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">{% trans "Select Month" %}</label>
+                    {{ generate_form.month }}
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">{% trans "Year" %}</label>
+                    {{ generate_form.year }}
+                </div>
+
+                <div class="bg-blue-50/60 border border-blue-200 p-3 rounded-xl text-xs text-blue-900 flex items-start gap-2">
+                    <i data-lucide="info" class="w-4 h-4 text-blue-600 shrink-0 mt-0.5"></i>
+                    <span>{% trans "Formula: Daily Rate = Basic / Days. Absent days and late penalties are deducted according to staff policies." %}</span>
+                </div>
+
+                <div class="flex items-center justify-end gap-2 pt-2">
+                    <button type="button" @click="showGenModal = false" class="px-4 py-2 border border-slate-300 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-50">
+                        {% trans "Cancel" %}
+                    </button>
+                    <button type="submit" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold transition">
+                        {% trans "Execute Payroll Run" %}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

@@ -1,0 +1,126 @@
+﻿{% extends 'base.html' %}
+
+{% block title %}Fee Vouchers Directory — School Management System{% endblock %}
+{% block header_title %}Fee Voucher Directory & Billing Operations{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header Banner -->
+    <div class="glass-card p-6 rounded-2xl border border-slate-800 flex flex-wrap items-center justify-between gap-4">
+        <div>
+            <h3 class="text-xl font-bold text-white flex items-center gap-2">
+                <i data-lucide="receipt" class="w-6 h-6 text-[#ff8000]"></i> School Fee Vouchers
+            </h3>
+            <p class="text-xs text-slate-400 mt-1">Manage billing, print Pakistani 3-copy vouchers, track payments, and send WhatsApp reminders.</p>
+        </div>
+        <a href="{% url 'voucher_create' %}" class="px-4 py-2.5 bg-gradient-to-r from-[#ff8000] to-[#9ece38] hover:from-[#ff8000]/90 hover:to-[#9ece38]/90 text-slate-950 font-bold rounded-xl text-xs flex items-center gap-2 shadow-lg shadow-[#ff8000]/25 transition">
+            <i data-lucide="plus-circle" class="w-4 h-4"></i> Create New Fee Voucher
+        </a>
+    </div>
+
+    <!-- Search & Filter Form -->
+    <div class="glass-card p-4 rounded-2xl border border-slate-800">
+        <form method="GET" action="{% url 'voucher_list' %}" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 text-xs">
+            <!-- Search Input -->
+            <div class="relative lg:col-span-2">
+                <input type="text" name="q" value="{{ search_query }}" placeholder="Search by Student Name, Adm #, or Voucher #" class="w-full pl-9 pr-3 py-2 bg-slate-950/80 border border-slate-700/80 rounded-xl text-white placeholder-slate-500 focus:ring-2 focus:ring-[#ff8000]">
+                <i data-lucide="search" class="w-4 h-4 text-slate-500 absolute left-3 top-2.5"></i>
+            </div>
+
+            <!-- Class Filter -->
+            <div>
+                <select name="class_id" class="w-full px-3 py-2 bg-slate-950/80 border border-slate-700/80 rounded-xl text-white focus:ring-2 focus:ring-[#ff8000]">
+                    <option value="">All Class Levels</option>
+                    {% for c in classes %}
+                        <option value="{{ c.id }}" {% if selected_class == c.id|stringformat:"s" %}selected{% endif %}>{{ c.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Status Filter -->
+            <div>
+                <select name="status" class="w-full px-3 py-2 bg-slate-950/80 border border-slate-700/80 rounded-xl text-white focus:ring-2 focus:ring-[#ff8000]">
+                    <option value="">All Voucher Statuses</option>
+                    {% for st_val, st_lbl in status_choices %}
+                        <option value="{{ st_val }}" {% if selected_status == st_val %}selected{% endif %}>{{ st_lbl }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Submit Filter Button -->
+            <div class="flex items-center gap-2">
+                <button type="submit" class="w-full py-2 bg-slate-800 hover:bg-slate-700 text-white font-semibold rounded-xl border border-slate-700 flex items-center justify-center gap-1.5 transition">
+                    <i data-lucide="filter" class="w-3.5 h-3.5"></i> Apply Filter
+                </button>
+                <a href="{% url 'voucher_list' %}" class="py-2 px-3 bg-slate-800/60 hover:bg-slate-800 text-slate-400 rounded-xl border border-slate-700">Reset</a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Voucher Directory Table -->
+    <div class="glass-card p-6 rounded-2xl border border-slate-800 space-y-4">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs text-slate-300">
+                <thead class="bg-slate-950/60 text-slate-400 uppercase tracking-wider font-semibold border-b border-slate-800">
+                    <tr>
+                        <th class="px-4 py-3">Voucher #</th>
+                        <th class="px-4 py-3">Student Name</th>
+                        <th class="px-4 py-3">Class & Sec</th>
+                        <th class="px-4 py-3">Billing Month</th>
+                        <th class="px-4 py-3">Due Date</th>
+                        <th class="px-4 py-3">Total Payable</th>
+                        <th class="px-4 py-3">Paid / Remaining</th>
+                        <th class="px-4 py-3">Status</th>
+                        <th class="px-4 py-3 text-right">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-800/60">
+                    {% for voucher in vouchers %}
+                    <tr class="hover:bg-slate-800/40 transition">
+                        <td class="px-4 py-3 font-mono text-[#ff8000] font-bold">{{ voucher.voucher_number }}</td>
+                        <td class="px-4 py-3 font-semibold text-white">
+                            {{ voucher.student.get_full_name }}
+                            <span class="text-[10px] text-slate-500 block font-mono">Adm: {{ voucher.student.admission_number }}</span>
+                        </td>
+                        <td class="px-4 py-3">{{ voucher.student.class_level.name }} - {{ voucher.student.section.name }}</td>
+                        <td class="px-4 py-3 font-medium text-slate-200">{{ voucher.billing_month }}</td>
+                        <td class="px-4 py-3 font-mono text-slate-300">{{ voucher.due_date|date:"d-M-Y" }}</td>
+                        <td class="px-4 py-3 font-bold text-white">Rs. {{ voucher.total_payable|floatformat:2 }}</td>
+                        <td class="px-4 py-3">
+                            <span class="text-[#9ece38] font-semibold block">Paid: {{ voucher.paid_amount|floatformat:0 }}</span>
+                            {% if voucher.remaining_balance > 0 %}
+                                <span class="text-amber-400 font-semibold block">Bal: {{ voucher.remaining_balance|floatformat:0 }}</span>
+                            {% else %}
+                                <span class="text-slate-500 block text-[10px]">Cleared</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-3">
+                            <span class="px-2.5 py-0.5 text-[10px] font-bold rounded-full uppercase tracking-wider
+                                {% if voucher.status == 'PAID' %} bg-[#9ece38]/15 text-[#9ece38] border border-[#9ece38]/30
+                                {% elif voucher.status == 'PARTIALLY_PAID' %} bg-[#009688]/15 text-[#009688] border border-[#009688]/30
+                                {% elif voucher.status == 'OVERDUE' %} bg-rose-500/15 text-rose-400 border border-rose-500/30
+                                {% elif voucher.status == 'CANCELLED' %} bg-slate-800 text-slate-500 border border-slate-700
+                                {% else %} bg-[#ff8000]/15 text-[#ff8000] border border-[#ff8000]/30 {% endif %}">
+                                {{ voucher.get_status_display }}
+                            </span>
+                        </td>
+                        <td class="px-4 py-3 text-right space-x-1.5 min-w-[200px]">
+                            <a href="{% url 'voucher_detail' voucher.id %}" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-[11px] font-medium border border-slate-700">View</a>
+                            {% if voucher.status != 'PAID' and voucher.status != 'CANCELLED' %}
+                                <a href="{% url 'record_payment' voucher.id %}" class="px-2.5 py-1 bg-[#009688]/20 hover:bg-[#009688]/30 text-[#9ece38] rounded-lg text-[11px] font-bold border border-[#009688]/40">Pay</a>
+                            {% endif %}
+                            <a href="{% url 'voucher_pdf' voucher.id %}" target="_blank" class="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-[11px] border border-slate-700" title="Download ReportLab PDF">PDF</a>
+                            <a href="{% url 'voucher_print' voucher.id %}" target="_blank" class="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-[11px] border border-slate-700" title="Print 3-Copy Voucher">Print</a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="9" class="px-4 py-8 text-center text-slate-500">No fee vouchers match your filter criteria.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

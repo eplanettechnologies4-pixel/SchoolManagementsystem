@@ -1,0 +1,60 @@
+{% extends 'base.html' %}
+{% load i18n %}
+
+{% block title %}{% trans "Review Staff Leave" %} — School Management System{% endblock %}
+{% block header_title %}{% trans "Review Staff Leave Application" %}{% endblock %}
+
+{% block content %}
+<div class="max-w-xl mx-auto space-y-6">
+    <div class="flex items-center justify-between">
+        <div>
+            <h3 class="text-lg font-bold text-slate-900">{% trans "Review Leave Application" %}</h3>
+            <p class="text-xs text-slate-500">{% trans "Staff Member" %}: {{ leave.staff.get_full_name }} ({{ leave.staff.employee_id }})</p>
+        </div>
+        <a href="{% url 'staff_tracking_dashboard' %}" class="px-4 py-2 border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-semibold rounded-xl inline-flex items-center gap-1.5 transition">
+            <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i> {% trans "Back" %}
+        </a>
+    </div>
+
+    <!-- Application Summary Card -->
+    <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm text-xs space-y-2">
+        <div class="flex justify-between border-b border-slate-100 pb-2">
+            <span class="text-slate-500">{% trans "Leave Type" %}:</span>
+            <strong class="text-slate-800">{{ leave.leave_type.name }}</strong>
+        </div>
+        <div class="flex justify-between border-b border-slate-100 pb-2">
+            <span class="text-slate-500">{% trans "Duration" %}:</span>
+            <strong class="text-blue-700">{{ leave.from_date|date:"M d, Y" }} &rarr; {{ leave.to_date|date:"M d, Y" }} ({{ leave.total_days }} days)</strong>
+        </div>
+        <div>
+            <span class="text-slate-500 block mb-1">{% trans "Reason" %}:</span>
+            <p class="p-3 bg-slate-50 rounded-xl text-slate-700 border border-slate-200">{{ leave.reason }}</p>
+        </div>
+    </div>
+
+    <!-- Review Decision Form -->
+    <form method="POST" class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-4">
+        {% csrf_token %}
+
+        <div class="text-xs space-y-1">
+            <label class="block font-medium text-slate-700">{{ form.status.label }} *</label>
+            {{ form.status }}
+        </div>
+
+        <div class="text-xs space-y-1">
+            <label class="block font-medium text-slate-700">{{ form.review_comments.label }}</label>
+            {{ form.review_comments }}
+        </div>
+
+        <div class="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
+            <a href="{% url 'staff_tracking_dashboard' %}" class="px-4 py-2 border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-semibold rounded-xl transition">
+                {% trans "Cancel" %}
+            </a>
+            <button type="submit" class="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl inline-flex items-center gap-2 shadow-sm transition">
+                <i data-lucide="check-circle" class="w-4 h-4"></i> {% trans "Save Decision" %}
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}
+

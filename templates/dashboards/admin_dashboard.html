@@ -1,0 +1,850 @@
+{% extends 'base.html' %}
+
+{% block title %}System Control & Analytics Dashboard — School Management System{% endblock %}
+{% block header_title %}System Control & Analytics Dashboard{% endblock %}
+
+{% block content %}
+<div class="space-y-6" x-data="overviewDashboard()" x-init="init()">
+    <!-- Hidden JSON payload with Weekly, Monthly, and Yearly analytics data -->
+    <script id="analytics-data" type="application/json">{{ analytics_data_json|safe }}</script>
+
+    <!-- Top Executive Header Ribbon with Timeframe Switcher (Week / Month / Year) -->
+    <div class="glass-card p-4 sm:p-5 rounded-2xl border border-slate-200 bg-white flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm">
+        <div class="flex items-center gap-3">
+            <div class="w-11 h-11 rounded-2xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-purple-600 text-white flex items-center justify-center shadow-md shadow-blue-500/20">
+                <i data-lucide="bar-chart-2" class="w-6 h-6"></i>
+            </div>
+            <div>
+                <h3 class="text-base sm:text-lg font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
+                    Executive Overview & Analytics
+                    <span class="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">Live Portal</span>
+                </h3>
+                <p class="text-xs text-slate-500">Real-time attendance, fee collections, student enrollments, and academic operations.</p>
+            </div>
+        </div>
+
+        <!-- Action Buttons & Interactive Week / Month / Year Switcher -->
+        <div class="flex items-center flex-wrap gap-2.5">
+            <!-- Quick Create Shortcuts -->
+            <div class="flex items-center gap-1.5">
+                <button type="button"
+                        @click="showModalClass = true"
+                        class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition shadow-sm shadow-blue-500/20">
+                    <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                    <span>Add Class</span>
+                </button>
+                <button type="button"
+                        @click="showModalCategory = true"
+                        class="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-xl text-xs font-bold flex items-center gap-1.5 transition">
+                    <i data-lucide="folder-plus" class="w-3.5 h-3.5"></i>
+                    <span>Add Category</span>
+                </button>
+                <button type="button"
+                        @click="showModalSection = true"
+                        class="px-3 py-1.5 bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition">
+                    <i data-lucide="layers" class="w-3.5 h-3.5"></i>
+                    <span>Add Section</span>
+                </button>
+            </div>
+
+            <!-- Timeframe Switcher -->
+            <div class="inline-flex p-1 bg-slate-100 rounded-xl border border-slate-200 shadow-inner">
+                <button type="button"
+                        @click="setTimeframe('week')"
+                        :class="timeframe === 'week' ? 'bg-blue-600 text-white font-bold shadow-sm shadow-blue-500/30' : 'text-slate-600 hover:text-slate-900 font-semibold'"
+                        class="px-3.5 py-1.5 rounded-lg text-xs transition-all flex items-center gap-1.5">
+                    <i data-lucide="calendar" class="w-3.5 h-3.5"></i>
+                    <span>Week</span>
+                </button>
+                <button type="button"
+                        @click="setTimeframe('month')"
+                        :class="timeframe === 'month' ? 'bg-blue-600 text-white font-bold shadow-sm shadow-blue-500/30' : 'text-slate-600 hover:text-slate-900 font-semibold'"
+                        class="px-3.5 py-1.5 rounded-lg text-xs transition-all flex items-center gap-1.5">
+                    <i data-lucide="calendar-days" class="w-3.5 h-3.5"></i>
+                    <span>Month</span>
+                </button>
+                <button type="button"
+                        @click="setTimeframe('year')"
+                        :class="timeframe === 'year' ? 'bg-blue-600 text-white font-bold shadow-sm shadow-blue-500/30' : 'text-slate-600 hover:text-slate-900 font-semibold'"
+                        class="px-3.5 py-1.5 rounded-lg text-xs transition-all flex items-center gap-1.5">
+                    <i data-lucide="calendar-range" class="w-3.5 h-3.5"></i>
+                    <span>Year</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 6 COLORFUL KPI STAT WIDGETS -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+        <!-- 1. Total Enrolled Students (Vivid Royal Blue) -->
+        <div class="glass-card p-5 rounded-2xl border border-blue-200/80 bg-gradient-to-b from-blue-50/40 via-white to-white hover:border-blue-400 hover:shadow-md transition relative group overflow-hidden">
+            <div class="flex items-center justify-between">
+                <span class="text-[11px] font-bold text-blue-700 uppercase tracking-wider">Students</span>
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white flex items-center justify-center shadow-md shadow-blue-500/25 group-hover:scale-110 transition">
+                    <i data-lucide="graduation-cap" class="w-5 h-5"></i>
+                </div>
+            </div>
+            <div class="mt-3">
+                <h3 class="text-2xl font-extrabold text-slate-900 tracking-tight">{{ total_students }}</h3>
+                <p class="text-[11px] text-blue-600 font-semibold mt-1 flex items-center gap-1">
+                    <i data-lucide="trending-up" class="w-3 h-3"></i> +8.5% this session
+                </p>
+            </div>
+            <div class="mt-3 pt-2.5 border-t border-blue-100/80 text-[10px] text-slate-500 flex justify-between">
+                <span>Active SIS Enrolled</span>
+                <span class="font-bold text-blue-700">100%</span>
+            </div>
+        </div>
+
+        <!-- 2. Teaching & Admin Faculty (Vivid Emerald) -->
+        <div class="glass-card p-5 rounded-2xl border border-emerald-200/80 bg-gradient-to-b from-emerald-50/40 via-white to-white hover:border-emerald-400 hover:shadow-md transition relative group overflow-hidden">
+            <div class="flex items-center justify-between">
+                <span class="text-[11px] font-bold text-emerald-700 uppercase tracking-wider">Faculty & Staff</span>
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-500 text-white flex items-center justify-center shadow-md shadow-emerald-500/25 group-hover:scale-110 transition">
+                    <i data-lucide="users" class="w-5 h-5"></i>
+                </div>
+            </div>
+            <div class="mt-3">
+                <h3 class="text-2xl font-extrabold text-slate-900 tracking-tight">{{ total_teachers }}</h3>
+                <p class="text-[11px] text-emerald-600 font-semibold mt-1 flex items-center gap-1">
+                    <i data-lucide="shield-check" class="w-3 h-3"></i> Verified Active
+                </p>
+            </div>
+            <div class="mt-3 pt-2.5 border-t border-emerald-100/80 text-[10px] text-slate-500 flex justify-between">
+                <span>GPS Geofence</span>
+                <span class="font-bold text-emerald-700">Enforced</span>
+            </div>
+        </div>
+
+        <!-- 3. Fee Recovery Rate (Vivid Amber / Orange) -->
+        <div class="glass-card p-5 rounded-2xl border border-amber-200/80 bg-gradient-to-b from-amber-50/40 via-white to-white hover:border-amber-400 hover:shadow-md transition relative group overflow-hidden">
+            <div class="flex items-center justify-between">
+                <span class="text-[11px] font-bold text-amber-700 uppercase tracking-wider">Fee Recovery</span>
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 to-orange-500 text-white flex items-center justify-center shadow-md shadow-amber-500/25 group-hover:scale-110 transition">
+                    <i data-lucide="credit-card" class="w-5 h-5"></i>
+                </div>
+            </div>
+            <div class="mt-3">
+                <h3 class="text-2xl font-extrabold text-slate-900 tracking-tight">{{ recovery_rate }}%</h3>
+                <p class="text-[11px] text-amber-700 font-semibold mt-1 truncate">
+                    Rs. {{ fee_collected|floatformat:0 }} Rec.
+                </p>
+            </div>
+            <div class="mt-3 pt-2.5 border-t border-amber-100/80 text-[10px] text-slate-500 flex justify-between">
+                <span>Challan Vouchers</span>
+                <span class="font-bold text-amber-700">QR Valid</span>
+            </div>
+        </div>
+
+        <!-- 4. Punctuality & Attendance (Vivid Purple) -->
+        <div class="glass-card p-5 rounded-2xl border border-purple-200/80 bg-gradient-to-b from-purple-50/40 via-white to-white hover:border-purple-400 hover:shadow-md transition relative group overflow-hidden">
+            <div class="flex items-center justify-between">
+                <span class="text-[11px] font-bold text-purple-700 uppercase tracking-wider">Attendance</span>
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-purple-600 to-violet-600 text-white flex items-center justify-center shadow-md shadow-purple-500/25 group-hover:scale-110 transition">
+                    <i data-lucide="check-circle-2" class="w-5 h-5"></i>
+                </div>
+            </div>
+            <div class="mt-3">
+                <h3 class="text-2xl font-extrabold text-slate-900 tracking-tight" x-text="attendanceAvg">95.8%</h3>
+                <p class="text-[11px] text-purple-600 font-semibold mt-1" x-text="attendanceTrend">
+                    +1.4% vs last week
+                </p>
+            </div>
+            <div class="mt-3 pt-2.5 border-t border-purple-100/80 text-[10px] text-slate-500 flex justify-between">
+                <span>Target Baseline</span>
+                <span class="font-bold text-purple-700">95.0%</span>
+            </div>
+        </div>
+
+        <!-- 5. Classes & Sections (Vivid Rose) -->
+        <div class="glass-card p-5 rounded-2xl border border-rose-200/80 bg-gradient-to-b from-rose-50/40 via-white to-white hover:border-rose-400 hover:shadow-md transition relative group overflow-hidden">
+            <div class="flex items-center justify-between">
+                <span class="text-[11px] font-bold text-rose-700 uppercase tracking-wider">Classes</span>
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-rose-500 to-pink-600 text-white flex items-center justify-center shadow-md shadow-rose-500/25 group-hover:scale-110 transition">
+                    <i data-lucide="layers" class="w-5 h-5"></i>
+                </div>
+            </div>
+            <div class="mt-3">
+                <h3 class="text-2xl font-extrabold text-slate-900 tracking-tight">{{ total_classes }}</h3>
+                <p class="text-[11px] text-rose-600 font-semibold mt-1">
+                    {{ total_sections }} Configured Sec.
+                </p>
+            </div>
+            <div class="mt-3 pt-2.5 border-t border-rose-100/80 text-[10px] text-slate-500 flex justify-between">
+                <span>Capacity Check</span>
+                <span class="font-bold text-rose-700">Active</span>
+            </div>
+        </div>
+
+        <!-- 6. Monthly Payroll (Vivid Cyan / Blue) -->
+        <div class="glass-card p-5 rounded-2xl border border-cyan-200/80 bg-gradient-to-b from-cyan-50/40 via-white to-white hover:border-cyan-400 hover:shadow-md transition relative group overflow-hidden">
+            <div class="flex items-center justify-between">
+                <span class="text-[11px] font-bold text-cyan-700 uppercase tracking-wider">Payroll Disbursed</span>
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-600 to-blue-500 text-white flex items-center justify-center shadow-md shadow-cyan-500/25 group-hover:scale-110 transition">
+                    <i data-lucide="wallet" class="w-5 h-5"></i>
+                </div>
+            </div>
+            <div class="mt-3">
+                <h3 class="text-2xl font-extrabold text-slate-900 tracking-tight">Rs. {{ payroll_total|floatformat:0 }}</h3>
+                <p class="text-[11px] text-cyan-600 font-semibold mt-1">
+                    Salary Slips Issued
+                </p>
+            </div>
+            <div class="mt-3 pt-2.5 border-t border-cyan-100/80 text-[10px] text-slate-500 flex justify-between">
+                <span>Deductions & Leave</span>
+                <span class="font-bold text-cyan-700">Audited</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- TOP-LEVEL INTERACTIVE GRAPHS (Week, Month, Year Adaptive) -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- GRAPH 1: Attendance Trends (Week, Month, Year) -->
+        <div class="glass-card p-5 rounded-2xl border border-slate-200 bg-white shadow-xs space-y-4">
+            <div class="flex items-center justify-between flex-wrap gap-2">
+                <div>
+                    <h4 class="text-sm font-bold text-slate-900 flex items-center gap-2">
+                        <i data-lucide="trending-up" class="w-4 h-4 text-blue-600"></i>
+                        <span>Attendance & Punctuality Trends</span>
+                    </h4>
+                    <p class="text-xs text-slate-500">
+                        Viewing <span class="font-bold text-blue-600 uppercase" x-text="timeframe"></span> performance
+                    </p>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="px-2.5 py-1 text-xs font-bold rounded-lg bg-blue-50 text-blue-700 border border-blue-200" x-text="'Avg: ' + attendanceAvg"></span>
+                </div>
+            </div>
+            <div class="h-64 relative">
+                <canvas id="attendanceTrendsChart"></canvas>
+            </div>
+            <div class="pt-2 flex items-center justify-between text-xs text-slate-500 border-t border-slate-100">
+                <span class="flex items-center gap-1.5">
+                    <span class="w-2.5 h-2.5 rounded-full bg-blue-600"></span> Attendance Rate %
+                </span>
+                <span class="font-semibold text-emerald-600 flex items-center gap-1">
+                    <i data-lucide="sparkles" class="w-3.5 h-3.5"></i> Benchmark Met
+                </span>
+            </div>
+        </div>
+
+        <!-- GRAPH 2: Fee Collections vs Target (Week, Month, Year) -->
+        <div class="glass-card p-5 rounded-2xl border border-slate-200 bg-white shadow-xs space-y-4">
+            <div class="flex items-center justify-between flex-wrap gap-2">
+                <div>
+                    <h4 class="text-sm font-bold text-slate-900 flex items-center gap-2">
+                        <i data-lucide="banknote" class="w-4 h-4 text-emerald-600"></i>
+                        <span>Fee Inflow & Financial Targets</span>
+                    </h4>
+                    <p class="text-xs text-slate-500">
+                        Total for <span class="font-bold text-slate-700 capitalize" x-text="timeframe"></span>:
+                        <span class="font-bold text-emerald-700" x-text="feeTotal"></span>
+                    </p>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="px-2.5 py-1 text-xs font-bold rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200">Virtual Gateway</span>
+                </div>
+            </div>
+            <div class="h-64 relative">
+                <canvas id="feeCollectionsChart"></canvas>
+            </div>
+            <div class="pt-2 flex items-center justify-between text-xs text-slate-500 border-t border-slate-100">
+                <div class="flex items-center gap-4">
+                    <span class="flex items-center gap-1.5">
+                        <span class="w-2.5 h-2.5 rounded-sm bg-blue-600"></span> Actual Inflow
+                    </span>
+                    <span class="flex items-center gap-1.5">
+                        <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> Budget Target
+                    </span>
+                </div>
+                <a href="{% url 'challan_list' %}" class="text-blue-600 font-semibold hover:underline">Manage Challans →</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- STUDENT ENROLLMENT & COLORFUL QUICK LAUNCHER -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Student Enrollment Breakdown by Grade (Bar Chart) -->
+        <div class="lg:col-span-2 glass-card p-5 rounded-2xl border border-slate-200 bg-white shadow-xs space-y-4">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h4 class="text-sm font-bold text-slate-900 flex items-center gap-2">
+                        <i data-lucide="graduation-cap" class="w-4 h-4 text-indigo-600"></i>
+                        <span>Student Enrollment by Grade Level</span>
+                    </h4>
+                    <p class="text-xs text-slate-500">Distribution across active academic levels and sections.</p>
+                </div>
+                <a href="{% url 'class_list' %}" class="text-xs font-bold text-blue-600 hover:text-blue-800 hover:underline">Classes List →</a>
+            </div>
+            <div class="h-60 relative">
+                <canvas id="enrollmentDistributionChart"></canvas>
+            </div>
+        </div>
+
+        <!-- COLORFUL ACTION TILES WIDGET -->
+        <div class="glass-card p-5 rounded-2xl border border-slate-200 bg-white shadow-xs flex flex-col justify-between space-y-4">
+            <div>
+                <h4 class="text-sm font-bold text-slate-900 flex items-center gap-2">
+                    <i data-lucide="zap" class="w-4 h-4 text-amber-500"></i>
+                    <span>Quick Management Launcher</span>
+                </h4>
+                <p class="text-xs text-slate-500 mt-1">Instant administrative actions and portal navigation.</p>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <!-- Action 1: New Admission (Blue) -->
+                <a href="{% url 'student_admission' %}" class="p-3.5 rounded-xl bg-gradient-to-br from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 border border-blue-200 transition group flex flex-col justify-between">
+                    <div class="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center shadow-sm group-hover:scale-105 transition">
+                        <i data-lucide="user-plus" class="w-4 h-4"></i>
+                    </div>
+                    <div class="mt-2.5">
+                        <p class="text-xs font-bold text-slate-900">Admit Student</p>
+                        <p class="text-[10px] text-blue-700">4-Step Wizard</p>
+                    </div>
+                </a>
+
+                <!-- Action 2: Virtual Challan (Emerald) -->
+                <a href="{% url 'challan_create' %}" class="p-3.5 rounded-xl bg-gradient-to-br from-emerald-50 to-teal-50 hover:from-emerald-100 hover:to-teal-100 border border-emerald-200 transition group flex flex-col justify-between">
+                    <div class="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center shadow-sm group-hover:scale-105 transition">
+                        <i data-lucide="credit-card" class="w-4 h-4"></i>
+                    </div>
+                    <div class="mt-2.5">
+                        <p class="text-xs font-bold text-slate-900">Issue Challan</p>
+                        <p class="text-[10px] text-emerald-700">With QR Code</p>
+                    </div>
+                </a>
+
+                <!-- Action 3: Teacher Assignment (Purple) -->
+                <a href="{% url 'subject_assignments' %}" class="p-3.5 rounded-xl bg-gradient-to-br from-purple-50 to-violet-50 hover:from-purple-100 hover:to-violet-100 border border-purple-200 transition group flex flex-col justify-between">
+                    <div class="w-8 h-8 rounded-lg bg-purple-600 text-white flex items-center justify-center shadow-sm group-hover:scale-105 transition">
+                        <i data-lucide="calendar" class="w-4 h-4"></i>
+                    </div>
+                    <div class="mt-2.5">
+                        <p class="text-xs font-bold text-slate-900">Assignments</p>
+                        <p class="text-[10px] text-purple-700">Teacher Periods</p>
+                    </div>
+                </a>
+
+                <!-- Action 4: Central Reports Hub (Rose) -->
+                <a href="{% url 'reports_hub' %}" class="p-3.5 rounded-xl bg-gradient-to-br from-rose-50 to-pink-50 hover:from-rose-100 hover:to-pink-100 border border-rose-200 transition group flex flex-col justify-between">
+                    <div class="w-8 h-8 rounded-lg bg-rose-600 text-white flex items-center justify-center shadow-sm group-hover:scale-105 transition">
+                        <i data-lucide="file-spreadsheet" class="w-4 h-4"></i>
+                    </div>
+                    <div class="mt-2.5">
+                        <p class="text-xs font-bold text-slate-900">Reports Hub</p>
+                        <p class="text-[10px] text-rose-700">PDF & Excel</p>
+                    </div>
+                </a>
+            </div>
+
+            <!-- Operational System Health Bar -->
+            <div class="p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs space-y-1.5">
+                <div class="flex items-center justify-between text-[11px]">
+                    <span class="text-slate-600 font-medium">System Health:</span>
+                    <span class="text-emerald-700 font-bold flex items-center gap-1">
+                        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> 100% Operational
+                    </span>
+                </div>
+                <div class="w-full bg-slate-200 h-1.5 rounded-full overflow-hidden">
+                    <div class="bg-gradient-to-r from-blue-600 via-indigo-600 to-emerald-500 h-full rounded-full" style="width: 100%"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- RECENT STUDENT ADMISSIONS TABLE -->
+    <div class="glass-card p-6 rounded-2xl border border-slate-200 bg-white space-y-4 shadow-xs">
+        <div class="flex items-center justify-between">
+            <div>
+                <h4 class="text-sm font-bold text-slate-900 flex items-center gap-2">
+                    <i data-lucide="clock" class="w-4 h-4 text-blue-600"></i>
+                    <span>Recent Student Admissions</span>
+                </h4>
+                <p class="text-xs text-slate-500">Latest enrolled pupils with verified guardian records and admission credentials.</p>
+            </div>
+            <a href="{% url 'student_list' %}" class="text-xs text-blue-600 hover:text-blue-800 hover:underline font-bold flex items-center gap-1">
+                View Full Student Directory →
+            </a>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs text-slate-700">
+                <thead class="bg-slate-50 text-slate-500 uppercase tracking-wider font-semibold border-b border-slate-200">
+                    <tr>
+                        <th class="px-4 py-3">Adm No.</th>
+                        <th class="px-4 py-3">Student Name</th>
+                        <th class="px-4 py-3">Class & Section</th>
+                        <th class="px-4 py-3">Roll No.</th>
+                        <th class="px-4 py-3">Status</th>
+                        <th class="px-4 py-3 text-right">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    {% for student in recent_students %}
+                    <tr class="hover:bg-blue-50/40 transition">
+                        <td class="px-4 py-3 font-mono text-blue-600 font-bold">{{ student.admission_number }}</td>
+                        <td class="px-4 py-3 font-semibold text-slate-900 flex items-center gap-2.5">
+                            <div class="w-7 h-7 rounded-lg bg-gradient-to-tr from-blue-600 to-indigo-600 text-white flex items-center justify-center text-xs font-bold shadow-xs">
+                                {{ student.user.first_name|default:student.user.username|slice:":1"|upper }}
+                            </div>
+                            <div>
+                                <p class="font-bold text-slate-800 leading-tight">{{ student.get_full_name }}</p>
+                                <p class="text-[10px] text-slate-400 font-mono">{{ student.bform_number|default:"B-Form Pending" }}</p>
+                            </div>
+                        </td>
+                        <td class="px-4 py-3 text-slate-600 font-medium">
+                            <span class="px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 font-semibold">
+                                {{ student.class_level.name|default:"Unassigned" }} - {{ student.section.name|default:"A" }}
+                            </span>
+                        </td>
+                        <td class="px-4 py-3 font-mono text-slate-600 font-medium">{{ student.roll_number|default:"—" }}</td>
+                        <td class="px-4 py-3">
+                            <span class="px-2.5 py-1 text-[10px] font-bold bg-emerald-50 text-emerald-700 rounded-full border border-emerald-200">
+                                {{ student.get_status_display }}
+                            </span>
+                        </td>
+                        <td class="px-4 py-3 text-right space-x-2">
+                            <a href="{% url 'student_detail' student.id %}" class="px-3 py-1 bg-white hover:bg-slate-50 text-slate-700 rounded-lg text-[11px] font-semibold border border-slate-200 shadow-2xs transition">Profile</a>
+                            <a href="{% url 'student_id_card_pdf' student.id %}" target="_blank" class="px-3 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg text-[11px] font-bold border border-blue-200 transition">ID Card</a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="px-4 py-8 text-center text-slate-400">
+                            <div class="flex flex-col items-center justify-center gap-2">
+                                <i data-lucide="users" class="w-8 h-8 text-slate-300"></i>
+                                <p class="text-xs font-medium">No student admissions recorded yet.</p>
+                                <a href="{% url 'student_admission' %}" class="mt-1 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition">Admit First Student</a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- MODAL 1: ADD NEW CLASS LEVEL -->
+    <!-- ========================================== -->
+    <div x-show="showModalClass" x-cloak style="display: none;"
+         class="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+        <div @click.away="showModalClass = false"
+             x-show="showModalClass"
+             x-transition:enter="transition ease-out duration-200"
+             x-transition:enter-start="opacity-0 scale-95"
+             x-transition:enter-end="opacity-100 scale-100"
+             class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 space-y-4">
+            
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-8 h-8 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center">
+                        <i data-lucide="plus" class="w-4 h-4"></i>
+                    </div>
+                    <h3 class="text-base font-bold text-slate-900">Add New Academic Class</h3>
+                </div>
+                <button type="button" @click="showModalClass = false" class="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+            </div>
+
+            <form method="POST" action="{% url 'class_list' %}" class="space-y-4 text-xs">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="create_class">
+                <input type="hidden" name="next" value="{% url 'dashboard_admin' %}">
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-slate-700 font-semibold mb-1">Class Name *</label>
+                        <input type="text" name="name" required placeholder="e.g. Class 11 or Grade 7" class="w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-slate-700 font-semibold mb-1">Class Code *</label>
+                        <input type="text" name="code" required placeholder="e.g. C11" class="w-full px-3 py-2 border border-slate-300 rounded-xl uppercase focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-slate-700 font-semibold mb-1">Category / Wing</label>
+                        <select name="category" class="w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                            <option value="">— Select Category —</option>
+                            {% for cat in categories %}
+                            <option value="{{ cat.id }}">{{ cat.name }} ({{ cat.code }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-slate-700 font-semibold mb-1">Display Order</label>
+                        <input type="number" name="numeric_order" value="1" min="1" class="w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-slate-700 font-semibold mb-1">Curriculum & Stream Details</label>
+                    <input type="text" name="description" placeholder="e.g. Cambridge / Federal Board / Science & Arts" class="w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                </div>
+
+                <div class="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
+                    <button type="button" @click="showModalClass = false" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-semibold">Cancel</button>
+                    <button type="submit" class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-md shadow-blue-500/20">Create Class</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- MODAL 2: ADD CLASS CATEGORY / WING -->
+    <!-- ========================================== -->
+    <div x-show="showModalCategory" x-cloak style="display: none;"
+         class="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+        <div @click.away="showModalCategory = false"
+             x-show="showModalCategory"
+             x-transition:enter="transition ease-out duration-200"
+             x-transition:enter-start="opacity-0 scale-95"
+             x-transition:enter-end="opacity-100 scale-100"
+             class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 space-y-4">
+            
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-8 h-8 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center">
+                        <i data-lucide="folder-plus" class="w-4 h-4"></i>
+                    </div>
+                    <h3 class="text-base font-bold text-slate-900">Add Academic Category / Wing</h3>
+                </div>
+                <button type="button" @click="showModalCategory = false" class="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+            </div>
+
+            <form method="POST" action="{% url 'class_list' %}" class="space-y-4 text-xs">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="create_category">
+                <input type="hidden" name="next" value="{% url 'dashboard_admin' %}">
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-slate-700 font-semibold mb-1">Category / Wing Name *</label>
+                        <input type="text" name="name" required placeholder="e.g. Primary Wing or O-Levels" class="w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-slate-700 font-semibold mb-1">Category Code *</label>
+                        <input type="text" name="code" required placeholder="e.g. PRI, OLEV, SEC" class="w-full px-3 py-2 border border-slate-300 rounded-xl uppercase focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-slate-700 font-semibold mb-1">Display Order</label>
+                    <input type="number" name="numeric_order" value="1" min="1" class="w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                </div>
+
+                <div>
+                    <label class="block text-slate-700 font-semibold mb-1">Description</label>
+                    <textarea name="description" rows="2" placeholder="e.g. Kindergarten & Early Childhood Education Grades" class="w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none"></textarea>
+                </div>
+
+                <div class="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
+                    <button type="button" @click="showModalCategory = false" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-semibold">Cancel</button>
+                    <button type="submit" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold shadow-md shadow-indigo-500/20">Create Category</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- MODAL 3: ADD SECTION -->
+    <!-- ========================================== -->
+    <div x-show="showModalSection" x-cloak style="display: none;"
+         class="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+        <div @click.away="showModalSection = false"
+             x-show="showModalSection"
+             x-transition:enter="transition ease-out duration-200"
+             x-transition:enter-start="opacity-0 scale-95"
+             x-transition:enter-end="opacity-100 scale-100"
+             class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 space-y-4">
+            
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-8 h-8 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center">
+                        <i data-lucide="layers" class="w-4 h-4"></i>
+                    </div>
+                    <h3 class="text-base font-bold text-slate-900">Add Class Section</h3>
+                </div>
+                <button type="button" @click="showModalSection = false" class="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+            </div>
+
+            <form method="POST" action="{% url 'class_list' %}" class="space-y-4 text-xs">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="create_section">
+                <input type="hidden" name="next" value="{% url 'dashboard_admin' %}">
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-slate-700 font-semibold mb-1">Class Level *</label>
+                        <select name="class_level" required class="w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                            <option value="">— Select Class —</option>
+                            {% for c in classes %}
+                            <option value="{{ c.id }}">{{ c.name }} ({{ c.code }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-slate-700 font-semibold mb-1">Section Name *</label>
+                        <input type="text" name="name" required placeholder="e.g. Section A or Jasmine" class="w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-slate-700 font-semibold mb-1">Room Number</label>
+                        <input type="text" name="room_number" placeholder="e.g. Room 204" class="w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-slate-700 font-semibold mb-1">Max Capacity *</label>
+                        <input type="number" name="capacity" value="40" min="1" max="150" required class="w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-slate-700 font-semibold mb-1">Class Teacher</label>
+                    <select name="class_teacher" class="w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                        <option value="">— None (Unassigned) —</option>
+                        {% for t in teachers %}
+                        <option value="{{ t.id }}">{{ t.get_full_name|default:t.username }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
+                    <button type="button" @click="showModalSection = false" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-semibold">Cancel</button>
+                    <button type="submit" class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-md shadow-blue-500/20">Add Section</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function overviewDashboard() {
+        return {
+            timeframe: 'week',
+            showModalClass: false,
+            showModalCategory: false,
+            showModalSection: false,
+            analyticsData: JSON.parse(document.getElementById('analytics-data').textContent),
+            attendanceAvg: '95.8%',
+            attendanceTrend: '+1.4% vs last week',
+            feeTotal: '446,000 PKR',
+            attendanceChart: null,
+            feeChart: null,
+            enrollmentChart: null,
+
+            init() {
+                this.updateStats();
+                this.$nextTick(() => {
+                    this.initCharts();
+                });
+            },
+
+            setTimeframe(tf) {
+                this.timeframe = tf;
+                this.updateStats();
+                this.updateCharts();
+            },
+
+            updateStats() {
+                const att = this.analyticsData.attendance[this.timeframe];
+                this.attendanceAvg = att.avg;
+                this.attendanceTrend = att.trend;
+
+                const fee = this.analyticsData.fees[this.timeframe];
+                this.feeTotal = fee.total;
+            },
+
+            initCharts() {
+                // 1. Attendance Chart
+                const ctx1 = document.getElementById('attendanceTrendsChart');
+                if (ctx1) {
+                    const ctx12d = ctx1.getContext('2d');
+                    const attGrad = ctx12d.createLinearGradient(0, 0, 0, 260);
+                    attGrad.addColorStop(0, 'rgba(37, 99, 235, 0.28)');
+                    attGrad.addColorStop(1, 'rgba(37, 99, 235, 0.0)');
+
+                    this.attendanceChart = new Chart(ctx12d, {
+                        type: 'line',
+                        data: {
+                            labels: this.analyticsData.attendance[this.timeframe].labels,
+                            datasets: [{
+                                label: 'Attendance Rate (%)',
+                                data: this.analyticsData.attendance[this.timeframe].data,
+                                borderColor: '#2563eb',
+                                backgroundColor: attGrad,
+                                borderWidth: 3,
+                                pointBackgroundColor: '#1e3a8a',
+                                pointBorderColor: '#ffffff',
+                                pointBorderWidth: 2,
+                                pointRadius: 5,
+                                pointHoverRadius: 7,
+                                fill: true,
+                                tension: 0.38
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: { display: false },
+                                tooltip: {
+                                    callbacks: {
+                                        label: (ctx) => ` Attendance: ${ctx.parsed.y}%`
+                                    }
+                                }
+                            },
+                            scales: {
+                                y: {
+                                    min: 85,
+                                    max: 100,
+                                    ticks: { callback: (v) => v + '%', color: '#64748b' },
+                                    grid: { color: 'rgba(226, 232, 240, 0.6)' }
+                                },
+                                x: {
+                                    ticks: { color: '#64748b' },
+                                    grid: { display: false }
+                                }
+                            }
+                        }
+                    });
+                }
+
+                // 2. Fee Collections Chart
+                const ctx2 = document.getElementById('feeCollectionsChart');
+                if (ctx2) {
+                    const ctx22d = ctx2.getContext('2d');
+                    this.feeChart = new Chart(ctx22d, {
+                        type: 'bar',
+                        data: {
+                            labels: this.analyticsData.fees[this.timeframe].labels,
+                            datasets: [
+                                {
+                                    label: 'Collected (PKR)',
+                                    data: this.analyticsData.fees[this.timeframe].collected,
+                                    backgroundColor: 'rgba(37, 99, 235, 0.85)',
+                                    borderColor: '#2563eb',
+                                    borderWidth: 1.5,
+                                    borderRadius: 6,
+                                    order: 2
+                                },
+                                {
+                                    label: 'Target (PKR)',
+                                    data: this.analyticsData.fees[this.timeframe].target,
+                                    type: 'line',
+                                    borderColor: '#10b981',
+                                    borderWidth: 2.5,
+                                    pointBackgroundColor: '#059669',
+                                    pointRadius: 4,
+                                    fill: false,
+                                    order: 1
+                                }
+                            ]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    position: 'top',
+                                    labels: { boxWidth: 12, font: { size: 11, weight: '600' } }
+                                },
+                                tooltip: {
+                                    callbacks: {
+                                        label: (ctx) => ` ${ctx.dataset.label}: Rs. ${ctx.parsed.y.toLocaleString()}`
+                                    }
+                                }
+                            },
+                            scales: {
+                                y: {
+                                    ticks: {
+                                        callback: (v) => 'Rs ' + (v >= 1000000 ? (v/1000000).toFixed(1) + 'M' : (v/1000).toFixed(0) + 'k'),
+                                        color: '#64748b'
+                                    },
+                                    grid: { color: 'rgba(226, 232, 240, 0.6)' }
+                                },
+                                x: {
+                                    ticks: { color: '#64748b' },
+                                    grid: { display: false }
+                                }
+                            }
+                        }
+                    });
+                }
+
+                // 3. Enrollment Distribution Chart
+                const ctx3 = document.getElementById('enrollmentDistributionChart');
+                if (ctx3) {
+                    const ctx32d = ctx3.getContext('2d');
+                    const colors = [
+                        '#2563eb', '#10b981', '#8b5cf6', '#f59e0b', '#ec4899', '#06b6d4', '#6366f1', '#14b8a6'
+                    ];
+                    this.enrollmentChart = new Chart(ctx32d, {
+                        type: 'bar',
+                        data: {
+                            labels: this.analyticsData.enrollment.labels,
+                            datasets: [{
+                                label: 'Enrolled Students',
+                                data: this.analyticsData.enrollment.data,
+                                backgroundColor: colors.slice(0, this.analyticsData.enrollment.labels.length),
+                                borderRadius: 8,
+                                borderWidth: 0
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: { display: false },
+                                tooltip: {
+                                    callbacks: {
+                                        label: (ctx) => ` ${ctx.dataset.label}: ${ctx.parsed.y} Students`
+                                    }
+                                }
+                            },
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    ticks: { precision: 0, color: '#64748b' },
+                                    grid: { color: 'rgba(226, 232, 240, 0.6)' }
+                                },
+                                x: {
+                                    ticks: { color: '#64748b' },
+                                    grid: { display: false }
+                                }
+                            }
+                        }
+                    });
+                }
+            },
+
+            updateCharts() {
+                if (!this.attendanceChart || !this.feeChart) return;
+
+                // Update Attendance Chart
+                const att = this.analyticsData.attendance[this.timeframe];
+                this.attendanceChart.data.labels = att.labels;
+                this.attendanceChart.data.datasets[0].data = att.data;
+                this.attendanceChart.update();
+
+                // Update Fees Chart
+                const fee = this.analyticsData.fees[this.timeframe];
+                this.feeChart.data.labels = fee.labels;
+                this.feeChart.data.datasets[0].data = fee.collected;
+                this.feeChart.data.datasets[1].data = fee.target;
+                this.feeChart.update();
+            }
+        };
+    }
+</script>
+{% endblock %}

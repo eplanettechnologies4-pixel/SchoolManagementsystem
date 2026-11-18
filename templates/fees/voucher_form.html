@@ -1,0 +1,401 @@
+﻿{% extends 'base.html' %}
+
+{% block title %}{% if is_create %}Create Fee Voucher{% else %}Edit Fee Voucher #{{ voucher.voucher_number }}{% endif %} — School Management System{% endblock %}
+{% block header_title %}{% if is_create %}Generate New Fee Voucher{% else %}Edit Fee Voucher #{{ voucher.voucher_number }}{% endif %}{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto space-y-6">
+    <div class="glass-card p-6 rounded-2xl border border-slate-800 flex flex-wrap items-center justify-between gap-4">
+        <div>
+            <h3 class="text-xl font-bold text-white flex items-center gap-2">
+                <i data-lucide="calculator" class="w-6 h-6 text-[#ff8000]"></i>
+                {% if is_create %}Fee Voucher Generator{% else %}Edit Fee Voucher #{{ voucher.voucher_number }}{% endif %}
+            </h3>
+            <p class="text-xs text-slate-400 mt-1">Configure session totals, fee breakdown components, remaining fees, and real-time subtotals.</p>
+        </div>
+        <a href="{% url 'voucher_list' %}" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-semibold border border-slate-700 transition">← Back to Directory</a>
+    </div>
+
+    <form method="POST" class="space-y-6" id="voucherForm">
+        {% csrf_token %}
+
+        <!-- 1. Student & Billing Meta Section -->
+        <div class="glass-card p-6 rounded-2xl border border-slate-800 space-y-4">
+            <h4 class="text-sm font-bold text-[#ff8000] uppercase tracking-wider border-b border-slate-800 pb-2 flex items-center gap-2">
+                <i data-lucide="user-check" class="w-4 h-4 text-[#ff8000]"></i> 1. Student & Billing Details
+            </h4>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                <!-- Student Select -->
+                <div class="md:col-span-2 space-y-1">
+                    <label for="id_student" class="block font-semibold text-slate-300">Select Student *</label>
+                    {{ form.student }}
+                    {% if form.student.errors %}<span class="text-rose-400 text-[11px] block mt-1">{{ form.student.errors.0 }}</span>{% endif %}
+                </div>
+
+                <!-- Live Student Detail Display Badge -->
+                <div id="studentDetailBox" class="md:col-span-2 hidden bg-slate-950/70 p-3.5 rounded-xl border border-slate-800 flex flex-wrap items-center justify-between text-xs gap-3">
+                    <div>
+                        <span class="text-slate-400 block text-[11px]">Enrolled Student:</span>
+                        <strong id="badgeStudentName" class="text-white font-bold text-sm"></strong>
+                        <span id="badgeClassSec" class="text-[#9ece38] font-semibold ml-2"></span>
+                    </div>
+                    <div>
+                        <span class="text-slate-400 block text-[11px]">Guardian / Contact:</span>
+                        <span id="badgeGuardian" class="text-slate-200 font-medium"></span>
+                    </div>
+                    <div>
+                        <span class="text-slate-400 block text-[11px]">Arrears Outstanding:</span>
+                        <span id="badgePrevBal" class="text-amber-400 font-mono font-bold">Rs. 0.00</span>
+                    </div>
+                </div>
+
+                <!-- Academic Session -->
+                <div class="space-y-1">
+                    <label class="block font-semibold text-slate-300">Academic Session *</label>
+                    {{ form.academic_session }}
+                    {% if form.academic_session.errors %}<span class="text-rose-400 text-[11px] block mt-1">{{ form.academic_session.errors.0 }}</span>{% endif %}
+                </div>
+
+                <!-- Voucher Type -->
+                <div class="space-y-1">
+                    <label class="block font-semibold text-slate-300">Voucher Type *</label>
+                    {{ form.voucher_type }}
+                    {% if form.voucher_type.errors %}<span class="text-rose-400 text-[11px] block mt-1">{{ form.voucher_type.errors.0 }}</span>{% endif %}
+                </div>
+
+                <!-- Billing Month -->
+                <div class="space-y-1">
+                    <label class="block font-semibold text-slate-300">Billing Month *</label>
+                    {{ form.billing_month }}
+                    {% if form.billing_month.errors %}<span class="text-rose-400 text-[11px] block mt-1">{{ form.billing_month.errors.0 }}</span>{% endif %}
+                </div>
+
+                <!-- Dates -->
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="space-y-1">
+                        <label class="block font-semibold text-slate-300">Issue Date *</label>
+                        {{ form.issue_date }}
+                        {% if form.issue_date.errors %}<span class="text-rose-400 text-[11px] block mt-1">{{ form.issue_date.errors.0 }}</span>{% endif %}
+                    </div>
+                    <div class="space-y-1">
+                        <label class="block font-semibold text-slate-300">Due Date *</label>
+                        {{ form.due_date }}
+                        {% if form.due_date.errors %}<span class="text-rose-400 text-[11px] block mt-1">{{ form.due_date.errors.0 }}</span>{% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. Fee Overview & Period Totals Section -->
+        <div class="glass-card p-6 rounded-2xl border border-slate-800 space-y-4">
+            <div class="flex flex-wrap items-center justify-between border-b border-slate-800 pb-2 gap-2">
+                <h4 class="text-sm font-bold text-blue-400 uppercase tracking-wider flex items-center gap-2">
+                    <i data-lucide="wallet" class="w-4 h-4 text-blue-400"></i> 2. Fee Overview & Session Totals
+                </h4>
+                <label class="flex items-center gap-2 text-xs text-slate-300 cursor-pointer">
+                    {{ form.allow_advance_payment }}
+                    <span>Allow Advance Payment (Submitted > Total)</span>
+                </label>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 text-xs">
+                <!-- Monthly Fee -->
+                <div>
+                    <label class="block font-semibold text-slate-300 mb-1">Monthly Fee (Rs.) *</label>
+                    {{ form.monthly_fee }}
+                    <span class="text-[10px] text-slate-400 block mt-1">Monthly recurring fee</span>
+                    {% if form.monthly_fee.errors %}<span class="text-rose-400 text-[11px] block mt-1">{{ form.monthly_fee.errors.0 }}</span>{% endif %}
+                </div>
+
+                <!-- Total Fee -->
+                <div>
+                    <label class="block font-semibold text-slate-300 mb-1">Total Fee (Rs.) *</label>
+                    {{ form.total_fee }}
+                    <span class="text-[10px] text-slate-400 block mt-1">Total session/period fee</span>
+                    {% if form.total_fee.errors %}<span class="text-rose-400 text-[11px] block mt-1">{{ form.total_fee.errors.0 }}</span>{% endif %}
+                </div>
+
+                <!-- Submitted Fee -->
+                <div>
+                    <label class="block font-semibold text-slate-300 mb-1">Submitted Fee (Rs.) *</label>
+                    {{ form.submitted_fee }}
+                    <span class="text-[10px] text-slate-400 block mt-1">Amount already paid</span>
+                    {% if form.submitted_fee.errors %}<span class="text-rose-400 text-[11px] block mt-1">{{ form.submitted_fee.errors.0 }}</span>{% endif %}
+                </div>
+
+                <!-- Remaining Fee (Auto Calculated) -->
+                <div>
+                    <label class="block font-semibold text-slate-300 mb-1">Remaining Fee (Rs.)</label>
+                    {{ form.remaining_fee }}
+                    <span class="text-[10px] text-[#9ece38] block mt-1 font-semibold">Total Fee − Submitted Fee</span>
+                </div>
+            </div>
+
+            <!-- Advance Payment Warning Badge -->
+            <div id="submittedFeeWarning" class="hidden p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl text-amber-400 text-xs flex items-center gap-2">
+                <i data-lucide="alert-triangle" class="w-4 h-4 shrink-0"></i>
+                <span>Warning: Submitted Fee cannot exceed Total Fee unless "Allow Advance Payment" is checked.</span>
+            </div>
+        </div>
+
+        <!-- 3. Fee Components Breakdown & Subtotal Section -->
+        <div class="glass-card p-6 rounded-2xl border border-slate-800 space-y-4">
+            <h4 class="text-sm font-bold text-[#9ece38] uppercase tracking-wider border-b border-slate-800 pb-2 flex items-center gap-2">
+                <i data-lucide="layers" class="w-4 h-4 text-[#9ece38]"></i> 3. Fee Components Breakdown & Subtotal
+            </h4>
+            
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 text-xs">
+                <div>
+                    <label class="block font-medium text-slate-300 mb-1">Tuition / Monthly Fee (Rs.)</label>
+                    {{ form.tuition_fee }}
+                </div>
+                <div>
+                    <label class="block font-medium text-slate-300 mb-1">Admission Fee (Rs.)</label>
+                    {{ form.admission_fee }}
+                </div>
+                <div>
+                    <label class="block font-medium text-slate-300 mb-1">Exam Fee (Rs.)</label>
+                    {{ form.exam_fee }}
+                </div>
+                <div>
+                    <label class="block font-medium text-slate-300 mb-1">Transport Fee (Rs.)</label>
+                    {{ form.transport_fee }}
+                </div>
+                <div>
+                    <label class="block font-medium text-slate-300 mb-1">Hostel Fee (Rs.)</label>
+                    {{ form.hostel_fee }}
+                </div>
+                <div>
+                    <label class="block font-medium text-slate-300 mb-1">Previous Arrears (Rs.)</label>
+                    {{ form.previous_balance }}
+                </div>
+                <div>
+                    <label class="block font-medium text-slate-300 mb-1">Late Fine (Rs.)</label>
+                    {{ form.late_fine }}
+                </div>
+                <div>
+                    <label class="block font-medium text-slate-300 mb-1">Other Charges (Rs.)</label>
+                    {{ form.other_charges }}
+                </div>
+            </div>
+
+            <!-- Clear Subtotal Highlight Card -->
+            <div class="p-4 bg-slate-950/80 rounded-xl border border-slate-800 flex flex-wrap items-center justify-between text-xs gap-3">
+                <div>
+                    <span class="text-slate-400 block text-[11px] uppercase font-semibold">Subtotal Calculation:</span>
+                    <span class="text-slate-300 text-[11px]">Monthly Fee + Admission + Exam + Transport + Hostel + Other</span>
+                </div>
+                <div class="text-right">
+                    <span class="text-slate-400 block text-[10px]">Calculated Subtotal:</span>
+                    <span id="displaySubtotal" class="text-xl font-bold text-white font-mono">Rs. 0.00</span>
+                </div>
+            </div>
+
+            <!-- Discount & Concession -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs pt-2 border-t border-slate-800">
+                <div>
+                    <label class="block font-medium text-slate-300 mb-1">Discount / Concession Amount (Rs.)</label>
+                    {{ form.discount_amount }}
+                </div>
+                <div>
+                    <label class="block font-medium text-slate-300 mb-1">Scholarship / Concession Remarks</label>
+                    {{ form.discount_remarks }}
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. Calculation Pipeline & Final Summary Banner -->
+        <div class="glass-card p-6 rounded-2xl border border-[#009688]/40 bg-gradient-to-r from-[#009688]/10 via-slate-900 to-[#ff8000]/10 space-y-4">
+            <h4 class="text-xs font-bold text-slate-300 uppercase tracking-wider">4. Calculation Summary Pipeline</h4>
+
+            <!-- Pipeline Visual Cards -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3 text-xs">
+                <!-- Total Fee -->
+                <div class="p-3 bg-slate-950/80 rounded-xl border border-slate-800 text-center">
+                    <span class="text-[10px] text-slate-400 block font-semibold uppercase">Total Fee</span>
+                    <span id="pipeTotalFee" class="text-sm font-bold text-white font-mono mt-1 block">Rs. 0.00</span>
+                </div>
+
+                <!-- Submitted Fee -->
+                <div class="p-3 bg-slate-950/80 rounded-xl border border-slate-800 text-center">
+                    <span class="text-[10px] text-slate-400 block font-semibold uppercase">Submitted Fee</span>
+                    <span id="pipeSubmittedFee" class="text-sm font-bold text-blue-400 font-mono mt-1 block">Rs. 0.00</span>
+                </div>
+
+                <!-- Remaining Fee -->
+                <div class="p-3 bg-slate-950/80 rounded-xl border border-slate-800 text-center">
+                    <span class="text-[10px] text-slate-400 block font-semibold uppercase">Remaining Fee</span>
+                    <span id="pipeRemainingFee" class="text-sm font-bold text-[#9ece38] font-mono mt-1 block">Rs. 0.00</span>
+                </div>
+
+                <!-- Subtotal -->
+                <div class="p-3 bg-slate-950/80 rounded-xl border border-slate-800 text-center">
+                    <span class="text-[10px] text-slate-400 block font-semibold uppercase">Subtotal</span>
+                    <span id="pipeSubtotal" class="text-sm font-bold text-amber-300 font-mono mt-1 block">Rs. 0.00</span>
+                </div>
+
+                <!-- Final Payable -->
+                <div class="p-3 bg-slate-950/90 rounded-xl border border-[#ff8000]/40 text-center shadow-lg">
+                    <span class="text-[10px] text-[#ff8000] block font-extrabold uppercase">Final Payable</span>
+                    <span id="pipeFinalPayable" class="text-base font-bold text-white font-mono mt-1 block">Rs. 0.00</span>
+                </div>
+            </div>
+
+            <!-- Submit Action Bar -->
+            <div class="flex flex-wrap items-center justify-between pt-2 border-t border-slate-800 gap-4">
+                <div class="text-xs text-slate-400">
+                    <span class="font-medium">Form Formula:</span>
+                    <code class="text-slate-300 font-mono ml-1 text-[11px]">Final Payable = (Subtotal − Discount) + Arrears + Fine</code>
+                </div>
+
+                <button type="submit" id="btnSubmitVoucher" class="px-6 py-3 bg-gradient-to-r from-[#ff8000] to-[#9ece38] hover:opacity-90 text-slate-950 font-bold rounded-xl text-sm shadow-xl shadow-[#ff8000]/25 transition flex items-center gap-2">
+                    <i data-lucide="check-circle" class="w-5 h-5"></i>
+                    {% if is_create %}Generate Fee Voucher{% else %}Save Changes{% endif %}
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const studentSelect = document.getElementById('id_student');
+        const calcFields = document.querySelectorAll('.calc-field');
+        const monthlyInput = document.getElementById('id_monthly_fee');
+        const tuitionInput = document.getElementById('id_tuition_fee');
+        const totalFeeInput = document.getElementById('id_total_fee');
+        const submittedFeeInput = document.getElementById('id_submitted_fee');
+        const remainingFeeInput = document.getElementById('id_remaining_fee');
+        const allowAdvanceCheck = document.getElementById('id_allow_advance_payment');
+        const warningBox = document.getElementById('submittedFeeWarning');
+        const btnSubmit = document.getElementById('btnSubmitVoucher');
+
+        function formatCurrency(amount) {
+            return 'Rs. ' + amount.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        }
+
+        function updateCalculations() {
+            // Ensure non-negative input values
+            calcFields.forEach(f => {
+                if (f.value && parseFloat(f.value) < 0) {
+                    f.value = 0;
+                }
+            });
+
+            // 1. Sync Monthly Fee & Tuition Fee
+            let monthly = parseFloat(monthlyInput.value) || 0;
+            let tuition = parseFloat(tuitionInput.value) || 0;
+
+            // 2. Overview Totals
+            let totalFee = parseFloat(totalFeeInput.value) || 0;
+            let submittedFee = parseFloat(submittedFeeInput.value) || 0;
+            let allowAdvance = allowAdvanceCheck ? allowAdvanceCheck.checked : false;
+
+            let remainingFee = totalFee - submittedFee;
+            if (!allowAdvance && remainingFee < 0) {
+                remainingFee = 0;
+            }
+
+            remainingFeeInput.value = remainingFee.toFixed(2);
+
+            // Validation check: Submitted > Total
+            if (!allowAdvance && submittedFee > totalFee && totalFee > 0) {
+                warningBox.classList.remove('hidden');
+                submittedFeeInput.classList.add('border-rose-500');
+            } else {
+                warningBox.classList.add('hidden');
+                submittedFeeInput.classList.remove('border-rose-500');
+            }
+
+            // 3. Subtotal Components
+            let monthlyBase = Math.max(monthly, tuition);
+            let admission = parseFloat(document.getElementById('id_admission_fee').value) || 0;
+            let exam = parseFloat(document.getElementById('id_exam_fee').value) || 0;
+            let transport = parseFloat(document.getElementById('id_transport_fee').value) || 0;
+            let hostel = parseFloat(document.getElementById('id_hostel_fee').value) || 0;
+            let other = parseFloat(document.getElementById('id_other_charges').value) || 0;
+
+            let prevBal = parseFloat(document.getElementById('id_previous_balance').value) || 0;
+            let fine = parseFloat(document.getElementById('id_late_fine').value) || 0;
+            let discount = parseFloat(document.getElementById('id_discount_amount').value) || 0;
+
+            let subtotal = monthlyBase + admission + exam + transport + hostel + other;
+            let finalPayable = Math.max(0, subtotal - discount + prevBal + fine);
+
+            // 4. Update Displays
+            document.getElementById('displaySubtotal').innerText = formatCurrency(subtotal);
+            document.getElementById('pipeTotalFee').innerText = formatCurrency(totalFee);
+            document.getElementById('pipeSubmittedFee').innerText = formatCurrency(submittedFee);
+            document.getElementById('pipeRemainingFee').innerText = formatCurrency(remainingFee);
+            document.getElementById('pipeSubtotal').innerText = formatCurrency(subtotal);
+            document.getElementById('pipeFinalPayable').innerText = formatCurrency(finalPayable);
+        }
+
+        // Two-way sync for Monthly Fee & Tuition Fee
+        if (monthlyInput && tuitionInput) {
+            monthlyInput.addEventListener('input', function() {
+                if (parseFloat(this.value) >= 0) {
+                    tuitionInput.value = this.value;
+                }
+                updateCalculations();
+            });
+            tuitionInput.addEventListener('input', function() {
+                if (parseFloat(this.value) >= 0) {
+                    monthlyInput.value = this.value;
+                }
+                updateCalculations();
+            });
+        }
+
+        calcFields.forEach(field => {
+            field.addEventListener('input', updateCalculations);
+        });
+
+        if (allowAdvanceCheck) {
+            allowAdvanceCheck.addEventListener('change', updateCalculations);
+        }
+
+        // AJAX Student Fetch
+        function fetchStudentDetails(studentId) {
+            if (!studentId) {
+                document.getElementById('studentDetailBox').classList.add('hidden');
+                return;
+            }
+
+            fetch(`/fees/api/student-info/${studentId}/`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        document.getElementById('badgeStudentName').innerText = data.name + ' (' + data.admission_number + ')';
+                        document.getElementById('badgeClassSec').innerText = data.class_name + ' - ' + data.section_name;
+                        document.getElementById('badgeGuardian').innerText = data.guardian_name + ' (' + data.guardian_phone + ')';
+                        document.getElementById('badgePrevBal').innerText = formatCurrency(data.previous_balance);
+                        document.getElementById('studentDetailBox').classList.remove('hidden');
+
+                        // Auto populate previous balance if 0 currently
+                        const prevInput = document.getElementById('id_previous_balance');
+                        if (parseFloat(prevInput.value || 0) === 0 && data.previous_balance > 0) {
+                            prevInput.value = data.previous_balance.toFixed(2);
+                            updateCalculations();
+                        }
+                    }
+                })
+                .catch(err => console.error("Error fetching student details:", err));
+        }
+
+        if (studentSelect) {
+            studentSelect.addEventListener('change', function() {
+                fetchStudentDetails(this.value);
+            });
+            if (studentSelect.value) {
+                fetchStudentDetails(studentSelect.value);
+            }
+        }
+
+        updateCalculations();
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,312 @@
+{% extends 'base.html' %}
+{% load i18n %}
+
+{% block title %}{% trans "School Reports & Analytics Hub" %} — School Management System{% endblock %}
+{% block header_title %}{% trans "Central Reports & Exports Hub" %}{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto space-y-6">
+    <!-- Top Action Bar -->
+    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div>
+            <h3 class="text-xl font-bold text-slate-900 flex items-center gap-2">
+                <i data-lucide="bar-chart-3" class="w-6 h-6 text-blue-600"></i>
+                {% trans "School Reports & Document Exports Hub" %}
+            </h3>
+            <p class="text-xs text-slate-500 mt-0.5">
+                {% trans "Generate and download official PDF certificates, Excel rosters, attendance logs, and financial statements." %}
+            </p>
+        </div>
+
+        <div class="flex items-center gap-2 text-xs">
+            <span class="px-3 py-1.5 bg-blue-50 text-blue-700 font-semibold rounded-xl border border-blue-200">
+                <i data-lucide="calendar" class="w-3.5 h-3.5 inline mr-1"></i>
+                {{ today|date:"F Y" }}
+            </span>
+        </div>
+    </div>
+
+    <!-- Quick Overview Stats -->
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+            <span class="text-xs font-medium text-slate-500 block">{% trans "Total Students" %}</span>
+            <div class="text-2xl font-bold text-slate-900 mt-1">{{ students_count }}</div>
+            <span class="text-[10px] text-slate-400">{% trans "Active Enrolled" %}</span>
+        </div>
+        <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+            <span class="text-xs font-medium text-slate-500 block">{% trans "Faculty & Staff" %}</span>
+            <div class="text-2xl font-bold text-slate-900 mt-1">{{ staff_count }}</div>
+            <span class="text-[10px] text-slate-400">{% trans "Teachers & Admin" %}</span>
+        </div>
+        <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+            <span class="text-xs font-medium text-slate-500 block">{% trans "Active Classes" %}</span>
+            <div class="text-2xl font-bold text-slate-900 mt-1">{{ classes.count }}</div>
+            <span class="text-[10px] text-slate-400">{% trans "Academic Levels" %}</span>
+        </div>
+        <div class="bg-white p-4 rounded-2xl border border-blue-200 bg-blue-50/20 shadow-sm">
+            <span class="text-xs font-medium text-blue-600 block">{% trans "Monthly Payslips" %}</span>
+            <div class="text-2xl font-bold text-blue-700 mt-1">{{ payroll_slips_count }}</div>
+            <span class="text-[10px] text-blue-500">{% trans "Generated for" %} {{ today|date:"M Y" }}</span>
+        </div>
+    </div>
+
+    <!-- Reports Sections Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+
+        <!-- 1. Staff & Payroll Reports Card -->
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-4 flex flex-col justify-between">
+            <div class="space-y-3">
+                <div class="flex items-center gap-3 border-b border-slate-100 pb-3">
+                    <div class="w-10 h-10 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center">
+                        <i data-lucide="users-round" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <h4 class="text-sm font-bold text-slate-900">{% trans "Staff & Attendance Reports" %}</h4>
+                        <p class="text-[11px] text-slate-500">{% trans "Daily attendance, monthly sheets, and payroll slips." %}</p>
+                    </div>
+                </div>
+
+                <div class="space-y-2">
+                    <!-- Form for Attendance PDF -->
+                    <form method="GET" action="{% url 'staff_attendance_pdf' %}" target="_blank" class="p-3 bg-slate-50 rounded-xl space-y-2 border border-slate-100 text-xs">
+                        <span class="font-semibold text-slate-800 block">{% trans "Monthly Attendance Sheet (PDF)" %}</span>
+                        <div class="flex items-center gap-2">
+                            <select name="month" class="w-1/2 px-2 py-1 bg-white border border-slate-300 rounded-lg text-xs">
+                                {% for m_num, m_name in months %}
+                                <option value="{{ m_num }}" {% if m_num == current_month %}selected{% endif %}>{{ m_name }}</option>
+                                {% endfor %}
+                            </select>
+                            <input type="number" name="year" value="{{ current_year }}" class="w-1/3 px-2 py-1 bg-white border border-slate-300 rounded-lg text-xs">
+                            <button type="submit" class="p-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg transition" title="Download PDF">
+                                <i data-lucide="file-text" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    </form>
+
+                    <!-- Excel Attendance -->
+                    <a href="{% url 'staff_attendance_excel' %}?month={{ current_month }}&year={{ current_year }}" class="flex items-center justify-between p-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-xs transition">
+                        <span class="flex items-center gap-2 text-slate-700 font-medium">
+                            <i data-lucide="sheet" class="w-4 h-4 text-emerald-600"></i>
+                            {% trans "Monthly Attendance Excel (.xlsx)" %}
+                        </span>
+                        <i data-lucide="download" class="w-4 h-4 text-slate-400"></i>
+                    </a>
+
+                    <!-- Payroll Register -->
+                    <a href="{% url 'staff_payroll_dashboard' %}" class="flex items-center justify-between p-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-xs transition">
+                        <span class="flex items-center gap-2 text-slate-700 font-medium">
+                            <i data-lucide="wallet" class="w-4 h-4 text-blue-600"></i>
+                            {% trans "Monthly Staff Payroll & Salary Slips" %}
+                        </span>
+                        <i data-lucide="arrow-right" class="w-4 h-4 text-slate-400"></i>
+                    </a>
+
+                    <!-- Live Tracking -->
+                    <a href="{% url 'staff_tracking_dashboard' %}" class="flex items-center justify-between p-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-xs transition">
+                        <span class="flex items-center gap-2 text-slate-700 font-medium">
+                            <i data-lucide="map-pin" class="w-4 h-4 text-indigo-600"></i>
+                            {% trans "Staff Live GPS Tracking & Check-ins" %}
+                        </span>
+                        <i data-lucide="arrow-right" class="w-4 h-4 text-slate-400"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. Academic & Class Reports Card -->
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-4 flex flex-col justify-between">
+            <div class="space-y-3">
+                <div class="flex items-center gap-3 border-b border-slate-100 pb-3">
+                    <div class="w-10 h-10 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center">
+                        <i data-lucide="layers" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <h4 class="text-sm font-bold text-slate-900">{% trans "Academics & Classroom Lists" %}</h4>
+                        <p class="text-[11px] text-slate-500">{% trans "Class rosters, section capacities, and subject syllabi." %}</p>
+                    </div>
+                </div>
+
+                <div class="space-y-2 text-xs">
+                    <div class="p-3 bg-slate-50 rounded-xl space-y-2 border border-slate-100">
+                        <span class="font-semibold text-slate-800 block">{% trans "Export Class Student Roster" %}</span>
+                        {% if classes %}
+                        <div class="space-y-1.5 max-h-40 overflow-y-auto pr-1">
+                            {% for cls in classes %}
+                            <div class="flex items-center justify-between p-1.5 bg-white rounded-lg border border-slate-200">
+                                <span class="font-medium text-slate-800">{{ cls.name }}</span>
+                                <div class="flex items-center gap-1">
+                                    <a href="{% url 'class_export_pdf' cls.id %}" target="_blank" class="p-1 hover:bg-rose-50 text-rose-600 rounded" title="PDF">
+                                        <i data-lucide="file-text" class="w-3.5 h-3.5"></i>
+                                    </a>
+                                    <a href="{% url 'class_export_excel' cls.id %}" class="p-1 hover:bg-emerald-50 text-emerald-600 rounded" title="Excel">
+                                        <i data-lucide="sheet" class="w-3.5 h-3.5"></i>
+                                    </a>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        <p class="text-slate-400 italic">{% trans "No classes configured." %}</p>
+                        {% endif %}
+                    </div>
+
+                    <!-- Teacher Assignments -->
+                    <a href="{% url 'subject_assignments' %}" class="flex items-center justify-between p-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 transition">
+                        <span class="flex items-center gap-2 text-slate-700 font-medium">
+                            <i data-lucide="user-check" class="w-4 h-4 text-blue-600"></i>
+                            {% trans "Teacher Subject Assignments & Workload" %}
+                        </span>
+                        <i data-lucide="arrow-right" class="w-4 h-4 text-slate-400"></i>
+                    </a>
+
+                    <!-- Curriculum & Subjects -->
+                    <a href="{% url 'subject_list' %}" class="flex items-center justify-between p-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 transition">
+                        <span class="flex items-center gap-2 text-slate-700 font-medium">
+                            <i data-lucide="book-open" class="w-4 h-4 text-amber-600"></i>
+                            {% trans "Curriculum Subjects & PDF Guides" %}
+                        </span>
+                        <i data-lucide="arrow-right" class="w-4 h-4 text-slate-400"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. Students & SIS Reports Card -->
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-4 flex flex-col justify-between">
+            <div class="space-y-3">
+                <div class="flex items-center gap-3 border-b border-slate-100 pb-3">
+                    <div class="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center">
+                        <i data-lucide="graduation-cap" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <h4 class="text-sm font-bold text-slate-900">{% trans "Students & Admission Reports" %}</h4>
+                        <p class="text-[11px] text-slate-500">{% trans "Student profiles, ID cards, and admission letters." %}</p>
+                    </div>
+                </div>
+
+                <div class="space-y-2 text-xs">
+                    <!-- Student Directory -->
+                    <a href="{% url 'student_list' %}" class="flex items-center justify-between p-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 transition">
+                        <span class="flex items-center gap-2 text-slate-700 font-medium">
+                            <i data-lucide="users" class="w-4 h-4 text-emerald-600"></i>
+                            {% trans "Student Master Directory & Profiles" %}
+                        </span>
+                        <i data-lucide="arrow-right" class="w-4 h-4 text-slate-400"></i>
+                    </a>
+
+                    <!-- New Admission Form -->
+                    <a href="{% url 'student_admission' %}" class="flex items-center justify-between p-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 transition">
+                        <span class="flex items-center gap-2 text-slate-700 font-medium">
+                            <i data-lucide="user-plus" class="w-4 h-4 text-blue-600"></i>
+                            {% trans "5-Step Student Admission Wizard" %}
+                        </span>
+                        <i data-lucide="arrow-right" class="w-4 h-4 text-slate-400"></i>
+                    </a>
+
+                    <div class="p-3 bg-emerald-50/50 rounded-xl border border-emerald-100 space-y-1">
+                        <span class="font-semibold text-emerald-900 block">{% trans "Certificates & Letters" %}</span>
+                        <p class="text-[11px] text-emerald-700">
+                            {% trans "Admission Letters, School Leaving Certificates, and ID Cards are generated with QR verification directly from each student's profile." %}
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. Fee & Financial Reports Card -->
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-4 flex flex-col justify-between">
+            <div class="space-y-3">
+                <div class="flex items-center gap-3 border-b border-slate-100 pb-3">
+                    <div class="w-10 h-10 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center">
+                        <i data-lucide="credit-card" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <h4 class="text-sm font-bold text-slate-900">{% trans "Financial & Fee Reports" %}</h4>
+                        <p class="text-[11px] text-slate-500">{% trans "Fee collection, defaulters lists, and printable challans." %}</p>
+                    </div>
+                </div>
+
+                <div class="space-y-2 text-xs">
+                    <!-- Fee Dashboard & Defaulters -->
+                    <a href="{% url 'fee_dashboard' %}" class="flex items-center justify-between p-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 transition">
+                        <span class="flex items-center gap-2 text-slate-700 font-medium">
+                            <i data-lucide="pie-chart" class="w-4 h-4 text-amber-600"></i>
+                            {% trans "Accountant Dashboard & Defaulters List" %}
+                        </span>
+                        <i data-lucide="arrow-right" class="w-4 h-4 text-slate-400"></i>
+                    </a>
+
+                    <!-- Fee Challans -->
+                    <a href="{% url 'challan_list' %}" class="flex items-center justify-between p-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 transition">
+                        <span class="flex items-center gap-2 text-slate-700 font-medium">
+                            <i data-lucide="receipt" class="w-4 h-4 text-blue-600"></i>
+                            {% trans "Printable Challans (3-Part PDF with QR)" %}
+                        </span>
+                        <i data-lucide="arrow-right" class="w-4 h-4 text-slate-400"></i>
+                    </a>
+
+                    <!-- Fee Vouchers -->
+                    <a href="{% url 'voucher_list' %}" class="flex items-center justify-between p-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 transition">
+                        <span class="flex items-center gap-2 text-slate-700 font-medium">
+                            <i data-lucide="file-check" class="w-4 h-4 text-emerald-600"></i>
+                            {% trans "Fee Vouchers & Payment Receipts" %}
+                        </span>
+                        <i data-lucide="arrow-right" class="w-4 h-4 text-slate-400"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- 5. System Activity & Audit Trail Card -->
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-4 md:col-span-2 flex flex-col justify-between">
+            <div class="space-y-3">
+                <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center">
+                            <i data-lucide="shield-check" class="w-5 h-5"></i>
+                        </div>
+                        <div>
+                            <h4 class="text-sm font-bold text-slate-900">{% trans "System Audit Trail & Security Log" %}</h4>
+                            <p class="text-[11px] text-slate-500">{% trans "Recent administrative, student, staff, and financial mutations." %}</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto rounded-xl border border-slate-200 text-xs">
+                    <table class="w-full text-left border-collapse">
+                        <thead class="bg-slate-50 text-slate-600 text-[10px] uppercase font-bold border-b border-slate-200">
+                            <tr>
+                                <th class="py-2.5 px-3">{% trans "Timestamp" %}</th>
+                                <th class="py-2.5 px-3">{% trans "User / Actor" %}</th>
+                                <th class="py-2.5 px-3">{% trans "Action" %}</th>
+                                <th class="py-2.5 px-3">{% trans "Entity" %}</th>
+                                <th class="py-2.5 px-3">{% trans "IP Address" %}</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100 text-slate-700">
+                            {% for log in recent_audits %}
+                            <tr class="hover:bg-slate-50 transition">
+                                <td class="py-2 px-3 text-slate-500 text-[11px]">{{ log.timestamp|date:"M d, H:i" }}</td>
+                                <td class="py-2 px-3 font-semibold text-slate-900">{{ log.user.get_full_name|default:log.user.username|default:"System" }}</td>
+                                <td class="py-2 px-3">
+                                    <span class="px-2 py-0.5 rounded text-[10px] font-bold {% if log.action == 'CREATE' %}bg-emerald-50 text-emerald-700{% elif log.action == 'DELETE' %}bg-rose-50 text-rose-700{% else %}bg-blue-50 text-blue-700{% endif %}">
+                                        {{ log.action }}
+                                    </span>
+                                </td>
+                                <td class="py-2 px-3 font-medium text-slate-800">{{ log.object_repr|truncatechars:40 }}</td>
+                                <td class="py-2 px-3 font-mono text-[11px] text-slate-500">{{ log.ip_address|default:"127.0.0.1" }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="5" class="py-4 text-center text-slate-400 italic">{% trans "No audit records recorded yet." %}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}

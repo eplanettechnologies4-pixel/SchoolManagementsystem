@@ -1,0 +1,260 @@
+{% extends 'base.html' %}
+
+{% block title %}Fee Voucher Dashboard — School Management System{% endblock %}
+{% block header_title %}Financial Overview & Fee Voucher Analytics{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Quick Actions Banner -->
+    <div class="glass-card p-6 rounded-2xl border border-slate-200 bg-white flex flex-wrap items-center justify-between gap-4 shadow-xs">
+        <div>
+            <h3 class="text-lg font-bold text-slate-900 flex items-center gap-2">
+                <i data-lucide="receipt" class="w-5 h-5 text-blue-600"></i> Fee Voucher Management System
+            </h3>
+            <p class="text-xs text-slate-500 mt-1">Generate, manage, track, and collect school fee vouchers with WhatsApp notifications.</p>
+        </div>
+        <div class="flex flex-wrap items-center gap-3">
+            <a href="{% url 'voucher_create' %}" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs flex items-center gap-2 transition shadow-sm shadow-blue-500/20">
+                <i data-lucide="plus-circle" class="w-4 h-4"></i> Create New Voucher
+            </a>
+            <a href="{% url 'voucher_list' %}" class="px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-xl text-xs font-semibold flex items-center gap-2 transition">
+                <i data-lucide="list" class="w-4 h-4"></i> View All Vouchers
+            </a>
+        </div>
+    </div>
+
+    <!-- Financial Stat Cards Grid -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
+        <!-- Total Vouchers -->
+        <div class="glass-card p-4 rounded-2xl border border-slate-200 bg-white shadow-xs">
+            <p class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Total Vouchers</p>
+            <h3 class="text-2xl font-extrabold text-slate-900 mt-1">{{ total_vouchers }}</h3>
+            <span class="text-[10px] text-slate-400 mt-2 block">Active Billing Cycle</span>
+        </div>
+
+        <!-- Total Generated -->
+        <div class="glass-card p-4 rounded-2xl border border-blue-100 bg-white shadow-xs">
+            <p class="text-[11px] font-semibold text-blue-700 uppercase tracking-wider">Total Generated</p>
+            <h3 class="text-2xl font-extrabold text-slate-900 mt-1">Rs. {{ total_fee_generated|floatformat:0 }}</h3>
+            <span class="text-[10px] text-slate-400 mt-2 block">Gross Fee Invoiced</span>
+        </div>
+
+        <!-- Total Collected -->
+        <div class="glass-card p-4 rounded-2xl border border-emerald-100 bg-white shadow-xs">
+            <p class="text-[11px] font-semibold text-emerald-700 uppercase tracking-wider">Total Collected</p>
+            <h3 class="text-2xl font-extrabold text-emerald-700 mt-1">Rs. {{ total_collected|floatformat:0 }}</h3>
+            <span class="text-[10px] text-emerald-600 mt-2 block font-medium">Realized Payments</span>
+        </div>
+
+        <!-- Total Pending -->
+        <div class="glass-card p-4 rounded-2xl border border-amber-100 bg-white shadow-xs">
+            <p class="text-[11px] font-semibold text-amber-700 uppercase tracking-wider">Total Pending</p>
+            <h3 class="text-2xl font-extrabold text-slate-900 mt-1">Rs. {{ total_pending|floatformat:0 }}</h3>
+            <span class="text-[10px] text-amber-600 mt-2 block font-medium">Uncollected Balance</span>
+        </div>
+
+        <!-- Total Overdue -->
+        <div class="glass-card p-4 rounded-2xl border border-rose-100 bg-white shadow-xs">
+            <p class="text-[11px] font-semibold text-rose-700 uppercase tracking-wider">Total Overdue</p>
+            <h3 class="text-2xl font-extrabold text-rose-600 mt-1">Rs. {{ total_overdue|floatformat:0 }}</h3>
+            <span class="text-[10px] text-rose-500 mt-2 block font-medium">Past Due Date</span>
+        </div>
+
+        <!-- Today's Collection -->
+        <div class="glass-card p-4 rounded-2xl border border-blue-200 bg-blue-50/50 shadow-xs">
+            <p class="text-[11px] font-semibold text-blue-900 uppercase tracking-wider">Today's Collection</p>
+            <h3 class="text-2xl font-extrabold text-blue-900 mt-1">Rs. {{ today_collection|floatformat:0 }}</h3>
+            <span class="text-[10px] text-blue-700 mt-2 block font-medium">Daily Cash Inflow</span>
+        </div>
+    </div>
+
+    <!-- Charts Section -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Chart 1: Status Distribution -->
+        <div class="glass-card p-5 rounded-2xl border border-slate-800 space-y-4">
+            <div class="flex items-center justify-between">
+                <h4 class="text-sm font-bold text-white flex items-center gap-2">
+                    <i data-lucide="pie-chart" class="w-4 h-4 text-[#ff8000]"></i> Paid vs Unpaid Vouchers
+                </h4>
+                <span class="text-[11px] text-slate-400">Current Distribution</span>
+            </div>
+            <div class="h-64 relative">
+                <canvas id="statusDoughnutChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Chart 2: Class-wise Collection -->
+        <div class="glass-card p-5 rounded-2xl border border-slate-800 space-y-4">
+            <div class="flex items-center justify-between">
+                <h4 class="text-sm font-bold text-white flex items-center gap-2">
+                    <i data-lucide="bar-chart-2" class="w-4 h-4 text-[#009688]"></i> Class-wise Fee Collection
+                </h4>
+                <span class="text-[11px] text-slate-400">Generated vs Collected</span>
+            </div>
+            <div class="h-64 relative">
+                <canvas id="classBarChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Payments & Vouchers Grids -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Recent Payments -->
+        <div class="glass-card p-6 rounded-2xl border border-slate-800 space-y-4">
+            <div class="flex items-center justify-between">
+                <h4 class="text-sm font-bold text-white flex items-center gap-2">
+                    <i data-lucide="check-circle-2" class="w-4 h-4 text-[#9ece38]"></i> Recent Payments Received
+                </h4>
+                <a href="{% url 'voucher_list' %}" class="text-xs text-[#ff8000] hover:underline font-semibold">View All →</a>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs text-slate-300">
+                    <thead class="bg-slate-950/60 text-slate-400 uppercase tracking-wider font-semibold border-b border-slate-800">
+                        <tr>
+                            <th class="px-3 py-2.5">Receipt #</th>
+                            <th class="px-3 py-2.5">Student</th>
+                            <th class="px-3 py-2.5">Amount</th>
+                            <th class="px-3 py-2.5">Method</th>
+                            <th class="px-3 py-2.5 text-right">Receipt</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-800/60">
+                        {% for payment in recent_payments %}
+                        <tr class="hover:bg-slate-800/40 transition">
+                            <td class="px-3 py-2.5 font-mono text-[#ff8000] font-semibold">{{ payment.receipt_number }}</td>
+                            <td class="px-3 py-2.5 font-semibold text-white">{{ payment.voucher.student.get_full_name }}</td>
+                            <td class="px-3 py-2.5 text-[#9ece38] font-bold">Rs. {{ payment.amount_paid|floatformat:2 }}</td>
+                            <td class="px-3 py-2.5">{{ payment.get_payment_method_display }}</td>
+                            <td class="px-3 py-2.5 text-right">
+                                <a href="{% url 'receipt_pdf' payment.id %}" target="_blank" class="px-2 py-1 bg-[#009688]/20 hover:bg-[#009688]/30 text-[#9ece38] rounded-md text-[10px] font-semibold border border-[#009688]/40">PDF</a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="px-3 py-6 text-center text-slate-500">No payment receipts recorded yet.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Recent Fee Vouchers -->
+        <div class="glass-card p-6 rounded-2xl border border-slate-800 space-y-4">
+            <div class="flex items-center justify-between">
+                <h4 class="text-sm font-bold text-white flex items-center gap-2">
+                    <i data-lucide="clock" class="w-4 h-4 text-[#ff8000]"></i> Recently Issued Vouchers
+                </h4>
+                <a href="{% url 'voucher_list' %}" class="text-xs text-[#ff8000] hover:underline font-semibold">View All →</a>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs text-slate-300">
+                    <thead class="bg-slate-950/60 text-slate-400 uppercase tracking-wider font-semibold border-b border-slate-800">
+                        <tr>
+                            <th class="px-3 py-2.5">Voucher #</th>
+                            <th class="px-3 py-2.5">Student</th>
+                            <th class="px-3 py-2.5">Total</th>
+                            <th class="px-3 py-2.5">Status</th>
+                            <th class="px-3 py-2.5 text-right">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-800/60">
+                        {% for voucher in recent_vouchers %}
+                        <tr class="hover:bg-slate-800/40 transition">
+                            <td class="px-3 py-2.5 font-mono text-[#ff8000] font-semibold">{{ voucher.voucher_number }}</td>
+                            <td class="px-3 py-2.5 font-semibold text-white">{{ voucher.student.get_full_name }}</td>
+                            <td class="px-3 py-2.5 font-bold">Rs. {{ voucher.total_payable|floatformat:2 }}</td>
+                            <td class="px-3 py-2.5">
+                                <span class="px-2 py-0.5 text-[10px] font-bold rounded-full
+                                    {% if voucher.status == 'PAID' %} bg-[#9ece38]/15 text-[#9ece38] border border-[#9ece38]/30
+                                    {% elif voucher.status == 'PARTIALLY_PAID' %} bg-[#009688]/15 text-[#009688] border border-[#009688]/30
+                                    {% elif voucher.status == 'OVERDUE' %} bg-rose-500/15 text-rose-400 border border-rose-500/30
+                                    {% else %} bg-[#ff8000]/15 text-[#ff8000] border border-[#ff8000]/30 {% endif %}">
+                                    {{ voucher.get_status_display }}
+                                </span>
+                            </td>
+                            <td class="px-3 py-2.5 text-right space-x-1">
+                                <a href="{% url 'voucher_detail' voucher.id %}" class="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-md text-[10px] border border-slate-700">View</a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="px-3 py-6 text-center text-slate-500">No vouchers generated yet.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Status Doughnut Chart
+    const ctx1 = document.getElementById('statusDoughnutChart').getContext('2d');
+    new Chart(ctx1, {
+        type: 'doughnut',
+        data: {
+            labels: ['Paid', 'Unpaid', 'Partially Paid', 'Overdue'],
+            datasets: [{
+                data: [
+                    {{ status_counts.paid }},
+                    {{ status_counts.unpaid }},
+                    {{ status_counts.partially_paid }},
+                    {{ status_counts.overdue }}
+                ],
+                backgroundColor: ['#10b981', '#f59e0b', '#3b82f6', '#ef4444'],
+                borderColor: '#ffffff',
+                borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'right', labels: { color: '#475569', font: { family: 'Outfit' } } }
+            }
+        }
+    });
+
+    // Class-wise Horizontal Bar Chart
+    const ctx2 = document.getElementById('classBarChart').getContext('2d');
+    new Chart(ctx2, {
+        type: 'bar',
+        data: {
+            labels: {{ class_chart.labels|safe }},
+            datasets: [
+                {
+                    label: 'Generated (Rs.)',
+                    data: {{ class_chart.generated|safe }},
+                    backgroundColor: 'rgba(37, 99, 235, 0.75)',
+                    borderColor: '#2563eb',
+                    borderWidth: 1,
+                    borderRadius: 6
+                },
+                {
+                    label: 'Collected (Rs.)',
+                    data: {{ class_chart.collected|safe }},
+                    backgroundColor: 'rgba(16, 185, 129, 0.75)',
+                    borderColor: '#10b981',
+                    borderWidth: 1,
+                    borderRadius: 6
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'top', labels: { color: '#475569', font: { family: 'Outfit' } } }
+            },
+            scales: {
+                y: { grid: { color: 'rgba(0,0,0,0.05)' }, ticks: { color: '#64748b' } },
+                x: { grid: { display: false }, ticks: { color: '#64748b' } }
+            }
+        }
+    });
+</script>
+{% endblock %}
